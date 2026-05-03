@@ -1,41 +1,40 @@
 'use client';
 import { useState } from 'react';
 
+type DamagePart = {
+  name: string;
+  scale: string;
+};
+
 export default function PetRoomApp() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     type: '빌라/원룸',
     repairType: '경제적',
-
-    parts: [] as { name: string; size: string }[],
-
+    parts: [] as DamagePart[],
     wallSize: '',
     wallWidth: '',
     wallHeight: '',
-
     damageLocation: '',
-    damageScale: '',
     damageWidth: '',
     damageHeight: '',
-
     wallpaperType: '모름',
     wallpaperSame: '모름',
-
     furnitureMove: '',
     moveDate: '',
-
     contactMethod: '채팅 선호',
-
     hasEstimate: '없음',
     estimatePrice: '',
-
     images: [] as string[],
     extra: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  const GOOGLE_URL =
+    'https://script.google.com/macros/s/AKfycby0vCbBK7cQgEDyFX2URPFxrgZoHlupQP142mDj0_6ZmBi-1iJxKLVgrkIFgmMfwBsO/exec';
 
   const mainColor = '#1a4a5e';
 
@@ -74,7 +73,6 @@ export default function PetRoomApp() {
   };
 
   const btnStyle = (isSelected: boolean) => ({
-    flex: 1,
     padding: '12px 6px',
     textAlign: 'center' as const,
     borderRadius: '10px',
@@ -84,8 +82,31 @@ export default function PetRoomApp() {
     color: isSelected ? mainColor : '#94a3b8',
     fontSize: '13px',
     fontWeight: 'bold',
-    marginBottom: '8px',
   });
+
+  const selectOptions = (
+    field: keyof typeof formData,
+    options: string[],
+    columns = 2
+  ) => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        gap: '8px',
+      }}
+    >
+      {options.map((option) => (
+        <div
+          key={option}
+          onClick={() => setFormData({ ...formData, [field]: option })}
+          style={btnStyle(formData[field] === option)}
+        >
+          {option}
+        </div>
+      ))}
+    </div>
+  );
 
   const togglePart = (partName: string) => {
     const exists = formData.parts.find((p) => p.name === partName);
@@ -98,16 +119,16 @@ export default function PetRoomApp() {
     } else {
       setFormData({
         ...formData,
-        parts: [...formData.parts, { name: partName, size: '중간(M)' }],
+        parts: [...formData.parts, { name: partName, scale: '손바닥 2~3개' }],
       });
     }
   };
 
-  const updateSize = (partName: string, size: string) => {
+  const updatePartScale = (partName: string, scale: string) => {
     setFormData({
       ...formData,
       parts: formData.parts.map((p) =>
-        p.name === partName ? { ...p, size } : p
+        p.name === partName ? { ...p, scale } : p
       ),
     });
   };
@@ -139,6 +160,11 @@ export default function PetRoomApp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.name || !formData.phone) {
+      alert('성함과 연락처를 입력해주세요.');
+      return;
+    }
+
     if (formData.parts.length === 0) {
       alert('최소 하나 이상의 파손 부위를 선택해주세요.');
       return;
@@ -151,22 +177,19 @@ export default function PetRoomApp() {
 
     setIsLoading(true);
 
-    const GOOGLE_URL =
-      'https://script.google.com/macros/s/AKfycbwI5FnEE98m1DIItRzSitLqV2cb0dmrywjJM0FDPglc2-T2w1JtPfJTDIlEnvoqby024g/exec';
-
     const payload = {
       name: formData.name,
       phone: formData.phone,
       type: formData.type,
       repairType: formData.repairType,
       partsDetail: formData.parts
-        .map((p) => `${p.name}(${p.size})`)
+        .map((p) => `${p.name}(${p.scale})`)
         .join(', '),
       wallSize: formData.wallSize,
       wallWidth: formData.wallWidth,
       wallHeight: formData.wallHeight,
       damageLocation: formData.damageLocation,
-      damageScale: formData.damageScale,
+      damageScale: formData.parts.map((p) => `${p.name}:${p.scale}`).join(', '),
       damageWidth: formData.damageWidth,
       damageHeight: formData.damageHeight,
       wallpaperType: formData.wallpaperType,
@@ -200,7 +223,6 @@ export default function PetRoomApp() {
         wallWidth: '',
         wallHeight: '',
         damageLocation: '',
-        damageScale: '',
         damageWidth: '',
         damageHeight: '',
         wallpaperType: '모름',
@@ -222,29 +244,14 @@ export default function PetRoomApp() {
     }
   };
 
-  const selectOptions = (
-    field: keyof typeof formData,
-    options: string[],
-    columns = 2
-  ) => (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap: '8px',
-      }}
-    >
-      {options.map((option) => (
-        <div
-          key={option}
-          onClick={() => setFormData({ ...formData, [field]: option })}
-          style={btnStyle(formData[field] === option)}
-        >
-          {option}
-        </div>
-      ))}
-    </div>
-  );
+  const damageScaleOptions = [
+    '손바닥 1개 이하',
+    '손바닥 2~3개',
+    'A4 1장 정도',
+    'A4 2~3장',
+    '하단 가로로 길게',
+    '벽면/바닥 30% 이상',
+  ];
 
   return (
     <main style={{ backgroundColor: '#f8fafc', minHeight: '100vh', padding: '20px' }}>
@@ -274,6 +281,7 @@ export default function PetRoomApp() {
             alt="PET ROOM"
             style={{ width: '140px', height: 'auto', marginBottom: '10px' }}
           />
+
           <h1
             style={{
               color: mainColor,
@@ -284,9 +292,11 @@ export default function PetRoomApp() {
           >
             PET ROOM
           </h1>
+
           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '6px', lineHeight: '1.5' }}>
             원상복구, 기준부터 확인하세요
           </p>
+
           <p
             style={{
               color: '#334155',
@@ -323,6 +333,7 @@ export default function PetRoomApp() {
         <form onSubmit={handleSubmit}>
           <div style={cardStyle}>
             <label style={labelStyle}>1. 기본 정보</label>
+
             <input
               style={inputStyle}
               placeholder="성함"
@@ -330,6 +341,7 @@ export default function PetRoomApp() {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
+
             <input
               style={{ ...inputStyle, marginBottom: '0' }}
               placeholder="연락처"
@@ -350,43 +362,69 @@ export default function PetRoomApp() {
               경제적 복구는 티가 조금 나더라도 비용을 줄이는 방식입니다.
               완벽 복구는 집주인 확인이나 퇴거 분쟁 가능성을 줄이는 방식입니다.
             </p>
+
             {selectOptions('repairType', ['경제적', '완벽'], 2)}
           </div>
 
           <div style={cardStyle}>
-            <label style={labelStyle}>4. 파손 부위 (중복 선택)</label>
+            <label style={labelStyle}>4. 파손 부위와 크기</label>
+            <p style={guideStyle}>
+              먼저 파손 부위를 선택한 뒤, 각 부위별 크기를 손바닥/A4 기준으로 선택해주세요.
+            </p>
 
             {['벽지', '장판/바닥', '몰딩/문짝'].map((partName) => {
               const selectedPart = formData.parts.find((p) => p.name === partName);
 
               return (
-                <div key={partName} style={{ marginBottom: '12px' }}>
+                <div
+                  key={partName}
+                  style={{
+                    marginBottom: '14px',
+                    borderBottom: '1px solid #f1f5f9',
+                    paddingBottom: '14px',
+                  }}
+                >
                   <div
                     onClick={() => togglePart(partName)}
                     style={{
                       ...btnStyle(!!selectedPart),
                       width: '100%',
                       boxSizing: 'border-box',
+                      marginBottom: selectedPart ? '10px' : '0',
                     }}
                   >
                     {partName} {selectedPart ? '✅' : ''}
                   </div>
 
                   {selectedPart && (
-                    <div style={{ display: 'flex', gap: '5px', paddingLeft: '6px' }}>
-                      {['부분(S)', '중간(M)', '전체(L)'].map((size) => (
-                        <div
-                          key={size}
-                          onClick={() => updateSize(partName, size)}
-                          style={{
-                            ...btnStyle(selectedPart.size === size),
-                            padding: '8px 2px',
-                            fontSize: '11px',
-                          }}
-                        >
-                          {size}
-                        </div>
-                      ))}
+                    <div>
+                      <p
+                        style={{
+                          ...guideStyle,
+                          marginBottom: '8px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {partName} 파손 크기
+                      </p>
+
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(2, 1fr)',
+                          gap: '8px',
+                        }}
+                      >
+                        {damageScaleOptions.map((scale) => (
+                          <div
+                            key={scale}
+                            onClick={() => updatePartScale(partName, scale)}
+                            style={btnStyle(selectedPart.scale === scale)}
+                          >
+                            {scale}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -423,6 +461,7 @@ export default function PetRoomApp() {
                   setFormData({ ...formData, wallWidth: e.target.value })
                 }
               />
+
               <input
                 style={{ ...inputStyle, marginBottom: '0' }}
                 placeholder="벽면 세로 cm (선택)"
@@ -439,6 +478,7 @@ export default function PetRoomApp() {
             <p style={guideStyle}>
               파손 부위가 어디에 가까운지 선택해주세요. 하단 손상은 부분 보수 가능성 판단에 중요합니다.
             </p>
+
             {selectOptions(
               'damageLocation',
               ['하단', '중간', '상단', '모서리', '창문 주변', '전체적으로 분산'],
@@ -447,42 +487,28 @@ export default function PetRoomApp() {
           </div>
 
           <div style={cardStyle}>
-            <label style={labelStyle}>7. 파손 크기</label>
+            <label style={labelStyle}>7. 정확한 파손 크기 (선택)</label>
             <p style={guideStyle}>
-              cm를 몰라도 괜찮습니다. 손바닥, A4 용지 기준으로 대략 선택해주세요.
+              정확한 크기를 알면 입력해주세요. 모르면 비워두셔도 됩니다.
             </p>
 
-            {selectOptions(
-              'damageScale',
-              [
-                '손바닥 1개 이하',
-                '손바닥 2~3개',
-                'A4 1장 정도',
-                'A4 2~3장',
-                '하단 가로로 길게',
-                '벽면 30% 이상',
-              ],
-              2
-            )}
+            <input
+              style={inputStyle}
+              placeholder="파손 가로 cm (선택)"
+              value={formData.damageWidth}
+              onChange={(e) =>
+                setFormData({ ...formData, damageWidth: e.target.value })
+              }
+            />
 
-            <div style={{ marginTop: '10px' }}>
-              <input
-                style={inputStyle}
-                placeholder="파손 가로 cm (선택)"
-                value={formData.damageWidth}
-                onChange={(e) =>
-                  setFormData({ ...formData, damageWidth: e.target.value })
-                }
-              />
-              <input
-                style={{ ...inputStyle, marginBottom: '0' }}
-                placeholder="파손 세로 cm (선택)"
-                value={formData.damageHeight}
-                onChange={(e) =>
-                  setFormData({ ...formData, damageHeight: e.target.value })
-                }
-              />
-            </div>
+            <input
+              style={{ ...inputStyle, marginBottom: '0' }}
+              placeholder="파손 세로 cm (선택)"
+              value={formData.damageHeight}
+              onChange={(e) =>
+                setFormData({ ...formData, damageHeight: e.target.value })
+              }
+            />
           </div>
 
           <div style={cardStyle}>
@@ -511,6 +537,7 @@ export default function PetRoomApp() {
             <p style={guideStyle}>
               가구 이동이 많으면 작업 시간과 비용이 달라질 수 있습니다.
             </p>
+
             {selectOptions('furnitureMove', ['없음', '일부 있음', '많음', '모름'], 2)}
           </div>
 
@@ -519,6 +546,7 @@ export default function PetRoomApp() {
             <p style={guideStyle}>
               퇴거일이 가까울수록 가능한 일정과 비용이 달라질 수 있습니다.
             </p>
+
             <input
               type="date"
               style={{ ...inputStyle, marginBottom: '0' }}
@@ -532,6 +560,7 @@ export default function PetRoomApp() {
             <p style={guideStyle}>
               전화가 부담스러우면 채팅 상담을 선택하세요.
             </p>
+
             {selectOptions('contactMethod', ['채팅 선호', '전화 가능', '상관 없음'], 3)}
           </div>
 
