@@ -10,28 +10,183 @@ const getAreaNumber = (area: string) => {
   return match ? Number(match[0]) : null;
 };
 
+const formatAreaDisplay = (area: string) => {
+  const areaNumber = getAreaNumber(area);
+  return areaNumber === null ? area.replace('원룸', '').trim() : `${areaNumber}평`;
+};
+
+const normalizeHousingType = (housingType: string | null) => {
+  if (!housingType) {
+    return null;
+  }
+
+  return housingType === '원룸' ? '기타' : housingType;
+};
+
+const getTrustScore = (imageCount: number) => {
+  if (imageCount === 0) {
+    return 0;
+  }
+
+  if (imageCount <= 2) {
+    return 50;
+  }
+
+  if (imageCount <= 5) {
+    return 70;
+  }
+
+  return 82;
+};
+
+const getTrustLabel = (trustScore: number) => {
+  if (trustScore === 0) {
+    return '산출 불가';
+  }
+
+  if (trustScore < 60) {
+    return '보통';
+  }
+
+  if (trustScore < 80) {
+    return '양호';
+  }
+
+  return '높음';
+};
+
+const isFullReplacement = (damageRange: string, repairIntent: string) =>
+  damageRange.includes('전체') || repairIntent.includes('전체');
+
+const hasMultipleDamagedAreas = (damageType: string, damageRange: string, damagePosition: string) =>
+  damageType.includes('+') || damageRange.includes('절반') || damageRange.includes('전체') || damagePosition === '혼합';
+
+const getPartialRepairRange = ({
+  damageType,
+  damageRange,
+  sameMaterial,
+  stuff,
+  schedule,
+  damagePosition,
+}: {
+  damageType: string;
+  damageRange: string;
+  sameMaterial: string;
+  stuff: string;
+  schedule: string;
+  damagePosition: string;
+}) => {
+  let adjustment = 0;
+
+  if (sameMaterial === '없음' || sameMaterial === '모르겠음') {
+    adjustment += 15000;
+  }
+
+  if (stuff === '일부 있음') {
+    adjustment += 10000;
+  } else if (stuff === '많음') {
+    adjustment += 20000;
+  }
+
+  if (schedule === '3일 이내') {
+    adjustment += 15000;
+  }
+
+  if (hasMultipleDamagedAreas(damageType, damageRange, damagePosition)) {
+    adjustment += 20000;
+  }
+
+  return {
+    minPrice: 180000 + Math.round(adjustment * 0.5),
+    maxPrice: Math.min(250000 + adjustment, 320000),
+  };
+};
+
+const getFullReplacementRange = (areaNumber: number | null) => {
+  const area = areaNumber ?? 6;
+  const minUnitPrice = 42000;
+  const maxUnitPrice = 60000;
+
+  return {
+    minPrice: Math.max(Math.round((area * minUnitPrice) / 10000) * 10000, 250000),
+    maxPrice: Math.max(Math.round((area * maxUnitPrice) / 10000) * 10000, 360000),
+  };
+};
+
+const getEstimateRange = ({
+  areaNumber,
+  damageType,
+  damageRange,
+  sameMaterial,
+  stuff,
+  schedule,
+  damagePosition,
+  repairIntent,
+}: {
+  areaNumber: number | null;
+  damageType: string;
+  damageRange: string;
+  sameMaterial: string;
+  stuff: string;
+  schedule: string;
+  damagePosition: string;
+  repairIntent: string;
+}) => {
+  if (isFullReplacement(damageRange, repairIntent)) {
+    return getFullReplacementRange(areaNumber);
+  }
+
+  return getPartialRepairRange({
+    damageType,
+    damageRange,
+    sameMaterial,
+    stuff,
+    schedule,
+    damagePosition,
+  });
+};
+
 function ResultContent() {
   const searchParams = useSearchParams();
   const mainColor = '#1a4a5e';
   const highlight = '#16a34a';
   const area = searchParams.get('area') ?? '';
   const areaNumber = getAreaNumber(area);
-  const multiplier = areaNumber === null ? 1 : areaNumber <= 6 ? 0.9 : areaNumber >= 10 ? 1.18 : 1;
-  const minPrice = Math.round((180000 * multiplier) / 10000) * 10000;
-  const maxPrice = Math.round((300000 * multiplier) / 10000) * 10000;
+  const areaDisplay = formatAreaDisplay(area);
+  const damageType = searchParams.get('damageType') ?? '';
+  const damageRange = searchParams.get('damageRange') ?? '';
+  const sameMaterial = searchParams.get('sameMaterial') ?? '';
+  const stuff = searchParams.get('stuff') ?? '';
+  const schedule = searchParams.get('schedule') ?? '';
+  const damagePosition = searchParams.get('damagePosition') ?? '';
+  const repairIntent = searchParams.get('repairIntent') ?? '';
+  const imageCountParam = Number(searchParams.get('imageCount') ?? '0');
+  const imageCount = Number.isFinite(imageCountParam) ? imageCountParam : 0;
+  const trustScore = getTrustScore(imageCount);
+  const trustLabel = getTrustLabel(trustScore);
+  const { minPrice, maxPrice } = getEstimateRange({
+    areaNumber,
+    damageType,
+    damageRange,
+    sameMaterial,
+    stuff,
+    schedule,
+    damagePosition,
+    repairIntent,
+  });
   const summaryItems = [
-    ['파손 유형', searchParams.get('damageType')],
-    ['파손 범위', searchParams.get('damageRange')],
-    ['면적', area],
+    ['파손 유형', damageType],
+    ['파손 범위', damageRange],
+    ['면적', areaDisplay],
     ['공간 구조', searchParams.get('layout')],
-    ['주거 유형', searchParams.get('housingType')],
-    ['동일 자재 여부', searchParams.get('sameMaterial')],
-    ['파손 위치', searchParams.get('damagePosition')],
-    ['복구 방식', searchParams.get('repairIntent')],
-    ['짐 여부', searchParams.get('stuff')],
-    ['일정', searchParams.get('schedule')],
+    ['주거 유형', normalizeHousingType(searchParams.get('housingType'))],
+    ['동일 자재 여부', sameMaterial],
+    ['파손 위치', damagePosition],
+    ['복구 방식', repairIntent],
+    ['짐 여부', stuff],
+    ['일정', schedule],
     ['지역', searchParams.get('location')],
-    ['사진 수', searchParams.get('imageCount') ? `${searchParams.get('imageCount')}장` : null],
+    ['사진 수', `${imageCount}장`],
   ].filter(([, value]) => value);
 
   const card = {
@@ -170,7 +325,7 @@ function ResultContent() {
           >
             <div
               style={{
-                width: '82%',
+                width: `${trustScore}%`,
                 height: '100%',
                 borderRadius: '999px',
                 background: highlight,
@@ -188,8 +343,8 @@ function ResultContent() {
               fontWeight: 700,
             }}
           >
-            <span>높음</span>
-            <span>82%</span>
+            <span>{trustLabel}</span>
+            <span>{trustScore}%</span>
           </div>
         </section>
 

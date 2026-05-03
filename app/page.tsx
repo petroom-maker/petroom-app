@@ -94,6 +94,11 @@ export default function PetRoomForm() {
   };
 
   const handleSubmit = () => {
+    if (form.images.length === 0) {
+      alert('사진을 첨부하지 않으면 견적 산출이 불가능합니다. 최소 2장 이상 업로드해주세요.');
+      return;
+    }
+
     const params = new URLSearchParams();
 
     Object.entries(form).forEach(([key, value]) => {
@@ -170,7 +175,7 @@ export default function PetRoomForm() {
         <div style={card}>
           <label style={label}>3. 면적</label>
           <input
-            placeholder="예: 원룸 6평"
+            placeholder="예: 6평"
             style={{
               width: '100%',
               padding: '12px',
@@ -189,7 +194,7 @@ export default function PetRoomForm() {
 
         <div style={card}>
           <label style={label}>5. 주거 유형</label>
-          {selectBox('housingType', ['아파트', '빌라', '오피스텔', '원룸'])}
+          {selectBox('housingType', ['아파트', '빌라·연립', '오피스텔', '기타'])}
         </div>
 
         <div style={card}>
