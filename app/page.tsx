@@ -78,15 +78,30 @@ export default function PetRoomForm() {
     <main style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
       <div style={{ maxWidth: '480px', margin: '0 auto' }}>
 
-        {/* 헤더 */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        {/* 헤더 (로고 포함) */}
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <img
+            src="/logo.png"
+            alt="PET ROOM"
+            style={{ width: '120px', marginBottom: '10px' }}
+          />
+
           <h2 style={{ margin: 0 }}>PET ROOM</h2>
+
           <p style={{ fontSize: '13px', color: '#64748b' }}>
             입력만 하면, 확정 견적 범위를 만들어드립니다
           </p>
         </div>
 
-        {/* 핵심 안내 (그린 강조) */}
+        {/* 핵심 안내 */}
         <div
           style={{
             background: '#f0fdf4',
@@ -129,7 +144,7 @@ export default function PetRoomForm() {
 
         {/* 자재 여부 */}
         <div style={card}>
-          <label style={label}>4. 동일 자재 여부 (중요)</label>
+          <label style={label}>4. 동일 자재 여부</label>
           {selectBox('sameMaterial', ['있음', '없음', '모르겠음'])}
         </div>
 
@@ -173,7 +188,7 @@ export default function PetRoomForm() {
           />
         </div>
 
-        {/* 사진 안내 (강조) */}
+        {/* 사진 안내 */}
         <div
           style={{
             background: '#dcfce7',
