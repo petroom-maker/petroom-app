@@ -58,23 +58,45 @@ const getTrustLabel = (trustScore: number) => {
 const isFullReplacement = (damageRange: string, repairIntent: string) =>
   damageRange.includes('전체') || repairIntent.includes('전체');
 
+const indicatesPartialOrSmallDamage = (damageRange: string) =>
+  damageRange.includes('부분') ||
+  damageRange.includes('일부') ||
+  damageRange.includes('손바닥') ||
+  damageRange.includes('A4');
+
+const isWallpaperPartialRepair = ({
+  damageType,
+  damageRange,
+  repairIntent,
+}: {
+  damageType: string;
+  damageRange: string;
+  repairIntent: string;
+}) =>
+  damageType === '벽지' &&
+  (repairIntent === '부분만 원함' || indicatesPartialOrSmallDamage(damageRange));
+
 const hasMultipleDamagedAreas = (damageType: string, damageRange: string, damagePosition: string) =>
   damageType.includes('+') || damageRange.includes('절반') || damageRange.includes('전체') || damagePosition === '혼합';
 
 const getPartialRepairRange = ({
+  areaNumber,
   damageType,
   damageRange,
   sameMaterial,
   stuff,
   schedule,
   damagePosition,
+  repairIntent,
 }: {
+  areaNumber: number | null;
   damageType: string;
   damageRange: string;
   sameMaterial: string;
   stuff: string;
   schedule: string;
   damagePosition: string;
+  repairIntent: string;
 }) => {
   let adjustment = 0;
 
@@ -96,9 +118,24 @@ const getPartialRepairRange = ({
     adjustment += 20000;
   }
 
+  if (isWallpaperPartialRepair({ damageType, damageRange, repairIntent })) {
+    const minBase = areaNumber !== null && areaNumber >= 10 ? 200000 : 180000;
+    const uncappedMaxPrice = 250000 + adjustment;
+
+    return {
+      minPrice: Math.min(minBase, 250000),
+      maxPrice: 250000,
+      cautionMessage:
+        uncappedMaxPrice > 250000
+          ? '부분 보수 기준을 초과할 수 있어 전체 시공 또는 현장 확인이 필요할 수 있습니다.'
+          : null,
+    };
+  }
+
   return {
     minPrice: 180000 + Math.round(adjustment * 0.5),
     maxPrice: Math.min(250000 + adjustment, 320000),
+    cautionMessage: null,
   };
 };
 
@@ -110,6 +147,7 @@ const getFullReplacementRange = (areaNumber: number | null) => {
   return {
     minPrice: Math.max(Math.round((area * minUnitPrice) / 10000) * 10000, 250000),
     maxPrice: Math.max(Math.round((area * maxUnitPrice) / 10000) * 10000, 360000),
+    cautionMessage: null,
   };
 };
 
@@ -132,18 +170,26 @@ const getEstimateRange = ({
   damagePosition: string;
   repairIntent: string;
 }) => {
-  if (isFullReplacement(damageRange, repairIntent)) {
-    return getFullReplacementRange(areaNumber);
-  }
-
-  return getPartialRepairRange({
+  const partialRepairRange = getPartialRepairRange({
+    areaNumber,
     damageType,
     damageRange,
     sameMaterial,
     stuff,
     schedule,
     damagePosition,
+    repairIntent,
   });
+
+  if (isWallpaperPartialRepair({ damageType, damageRange, repairIntent })) {
+    return partialRepairRange;
+  }
+
+  if (isFullReplacement(damageRange, repairIntent)) {
+    return getFullReplacementRange(areaNumber);
+  }
+
+  return partialRepairRange;
 };
 
 function ResultContent() {
@@ -164,7 +210,7 @@ function ResultContent() {
   const imageCount = Number.isFinite(imageCountParam) ? imageCountParam : 0;
   const trustScore = getTrustScore(imageCount);
   const trustLabel = getTrustLabel(trustScore);
-  const { minPrice, maxPrice } = getEstimateRange({
+  const { minPrice, maxPrice, cautionMessage } = getEstimateRange({
     areaNumber,
     damageType,
     damageRange,
@@ -188,6 +234,12 @@ function ResultContent() {
     ['지역', searchParams.get('location')],
     ['사진 수', `${imageCount}장`],
   ].filter(([, value]) => value);
+  const analysisItems = [
+    '부분 시공 가능성이 높습니다',
+    '일부 업체는 전체 시공을 권유할 수 있습니다',
+    '사진 기준 견적을 요청하는 것이 유리합니다',
+    cautionMessage,
+  ].filter((item): item is string => Boolean(item));
 
   const card = {
     background: '#fff',
@@ -368,11 +420,7 @@ function ResultContent() {
               gap: '10px',
             }}
           >
-            {[
-              '부분 시공 가능성이 높습니다',
-              '일부 업체는 전체 시공을 권유할 수 있습니다',
-              '사진 기준 견적을 요청하는 것이 유리합니다',
-            ].map((item) => (
+            {analysisItems.map((item) => (
               <li
                 key={item}
                 style={{
