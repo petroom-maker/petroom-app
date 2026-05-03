@@ -1,11 +1,30 @@
 'use client';
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+type FormState = {
+  damageType: string;
+  damageRange: string;
+  area: string;
+  layout: string;
+  housingType: string;
+  stuff: string;
+  schedule: string;
+  location: string;
+  sameMaterial: string;
+  damagePosition: string;
+  repairIntent: string;
+  images: string[];
+};
 
 export default function PetRoomForm() {
-  const [form, setForm] = useState({
+  const router = useRouter();
+  const [form, setForm] = useState<FormState>({
     damageType: '',
     damageRange: '',
+    area: '',
     layout: '',
+    housingType: '',
     stuff: '',
     schedule: '',
     location: '',
@@ -45,13 +64,13 @@ export default function PetRoomForm() {
     fontSize: '13px',
   });
 
-  const selectBox = (field: string, options: string[]) => (
+  const selectBox = (field: keyof Omit<FormState, 'images'>, options: string[]) => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px' }}>
       {options.map((opt) => (
         <div
           key={opt}
           onClick={() => setForm({ ...form, [field]: opt })}
-          style={btn((form as any)[field] === opt)}
+          style={btn(form[field] === opt)}
         >
           {opt}
         </div>
@@ -59,9 +78,9 @@ export default function PetRoomForm() {
     </div>
   );
 
-  const handleImage = (e: any) => {
-    const files = Array.from(e.target.files);
-    files.forEach((file: any) => {
+  const handleImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setForm((prev) => ({
@@ -72,6 +91,23 @@ export default function PetRoomForm() {
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleSubmit = () => {
+    const params = new URLSearchParams();
+
+    Object.entries(form).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        params.set('imageCount', String(value.length));
+        return;
+      }
+
+      if (value) {
+        params.set(key, value);
+      }
+    });
+
+    router.push(`/result?${params.toString()}`);
   };
 
   return (
@@ -132,37 +168,57 @@ export default function PetRoomForm() {
         </div>
 
         <div style={card}>
-          <label style={label}>3. 공간 구조</label>
+          <label style={label}>3. 면적</label>
+          <input
+            placeholder="예: 원룸 6평"
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '10px',
+              border: '1px solid #e5e7eb',
+            }}
+            value={form.area}
+            onChange={(e) => setForm({ ...form, area: e.target.value })}
+          />
+        </div>
+
+        <div style={card}>
+          <label style={label}>4. 공간 구조</label>
           {selectBox('layout', ['원룸', '2룸 이상', '잘 모르겠음'])}
         </div>
 
         <div style={card}>
-          <label style={label}>4. 동일 자재 여부</label>
+          <label style={label}>5. 주거 유형</label>
+          {selectBox('housingType', ['아파트', '빌라', '오피스텔', '원룸'])}
+        </div>
+
+        <div style={card}>
+          <label style={label}>6. 동일 자재 여부</label>
           {selectBox('sameMaterial', ['있음', '없음', '모르겠음'])}
         </div>
 
         <div style={card}>
-          <label style={label}>5. 파손 위치</label>
+          <label style={label}>7. 파손 위치</label>
           {selectBox('damagePosition', ['하단', '중단', '상단', '혼합'])}
         </div>
 
         <div style={card}>
-          <label style={label}>6. 복구 방식</label>
+          <label style={label}>8. 복구 방식</label>
           {selectBox('repairIntent', ['부분만 원함', '전체도 가능', '잘 모르겠음'])}
         </div>
 
         <div style={card}>
-          <label style={label}>7. 짐 여부</label>
+          <label style={label}>9. 짐 여부</label>
           {selectBox('stuff', ['없음', '일부 있음', '많음'])}
         </div>
 
         <div style={card}>
-          <label style={label}>8. 일정</label>
+          <label style={label}>10. 일정</label>
           {selectBox('schedule', ['3일 이내', '1주일 이내', '여유 있음', '협의 가능'])}
         </div>
 
         <div style={card}>
-          <label style={label}>9. 지역</label>
+          <label style={label}>11. 지역</label>
           <input
             placeholder="예: 성남시 분당구"
             style={{
@@ -197,12 +253,18 @@ export default function PetRoomForm() {
           <input type="file" multiple onChange={handleImage} />
           <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
             {previews.map((src, i) => (
-              <img key={i} src={src} style={{ width: '60px', height: '60px', objectFit: 'cover' }} />
+              <img
+                key={i}
+                src={src}
+                alt={`업로드한 사진 미리보기 ${i + 1}`}
+                style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+              />
             ))}
           </div>
         </div>
 
         <button
+          onClick={handleSubmit}
           style={{
             width: '100%',
             padding: '18px',
