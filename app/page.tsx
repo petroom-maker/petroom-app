@@ -94,8 +94,31 @@ export default function PetRoomForm() {
   };
 
   const handleSubmit = () => {
-    if (form.images.length === 0) {
-      alert('사진을 첨부하지 않으면 견적 산출이 불가능합니다. 최소 2장 이상 업로드해주세요.');
+    const requiredFields: Array<keyof Pick<
+      FormState,
+      | 'damageType'
+      | 'damageRange'
+      | 'layout'
+      | 'sameMaterial'
+      | 'damagePosition'
+      | 'repairIntent'
+      | 'stuff'
+      | 'schedule'
+    >> = [
+      'damageType',
+      'damageRange',
+      'layout',
+      'sameMaterial',
+      'damagePosition',
+      'repairIntent',
+      'stuff',
+      'schedule',
+    ];
+
+    const hasMissingRequiredField = requiredFields.some((field) => !form[field]);
+
+    if (hasMissingRequiredField || !form.location.trim() || form.images.length < 2) {
+      alert('견적 범위 산출을 위해 모든 필수 정보를 입력하고 사진을 최소 2장 이상 첨부해주세요.');
       return;
     }
 
