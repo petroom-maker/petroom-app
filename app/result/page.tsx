@@ -196,6 +196,7 @@ function ResultContent() {
   const searchParams = useSearchParams();
   const mainColor = '#1a4a5e';
   const highlight = '#16a34a';
+  const requestId = searchParams.get('requestId') ?? '';
   const area = searchParams.get('area') ?? '';
   const areaNumber = getAreaNumber(area);
   const areaDisplay = formatAreaDisplay(area);
@@ -208,9 +209,10 @@ function ResultContent() {
   const repairIntent = searchParams.get('repairIntent') ?? '';
   const imageCountParam = Number(searchParams.get('imageCount') ?? '0');
   const imageCount = Number.isFinite(imageCountParam) ? imageCountParam : 0;
-  const trustScore = getTrustScore(imageCount);
-  const trustLabel = getTrustLabel(trustScore);
-  const { minPrice, maxPrice, cautionMessage } = getEstimateRange({
+  const trustScoreFromParams = Number(searchParams.get('confidence') ?? '0');
+  const trustScore = trustScoreFromParams || getTrustScore(imageCount);
+  const trustLabel = searchParams.get('confidenceLabel') ?? getTrustLabel(trustScore);
+  const estimate = getEstimateRange({
     areaNumber,
     damageType,
     damageRange,
@@ -220,6 +222,9 @@ function ResultContent() {
     damagePosition,
     repairIntent,
   });
+  const minPrice = Number(searchParams.get('estimatedMin') ?? estimate.minPrice);
+  const maxPrice = Number(searchParams.get('estimatedMax') ?? estimate.maxPrice);
+  const cautionMessage = estimate.cautionMessage;
   const summaryItems = [
     ['파손 유형', damageType],
     ['파손 범위', damageRange],
@@ -323,6 +328,19 @@ function ResultContent() {
           >
             {formatWon(minPrice)} ~ {formatWon(maxPrice)}
           </p>
+
+          {requestId && (
+            <p
+              style={{
+                margin: '10px 0 0',
+                color: '#166534',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              요청 ID: {requestId}
+            </p>
+          )}
         </section>
 
         <section style={{ ...card, marginBottom: '14px' }}>
@@ -448,6 +466,33 @@ function ResultContent() {
             ))}
           </ul>
         </section>
+
+        {requestId && (
+          <section style={{ ...card, marginTop: '14px', borderColor: '#cbd5e1' }}>
+            <h2 style={sectionTitle}>업체 견적 입찰 링크</h2>
+            <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
+              시공업체에게 아래 링크와 요청 ID를 전달하면, 같은 요청서를 기준으로 견적을
+              제출할 수 있습니다.
+            </p>
+            <a
+              href={`/contractor?requestId=${encodeURIComponent(requestId)}&min=${minPrice}&max=${maxPrice}`}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '14px',
+                borderRadius: '12px',
+                background: mainColor,
+                color: '#fff',
+                textAlign: 'center',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 800,
+              }}
+            >
+              업체 견적 입력 화면 열기
+            </a>
+          </section>
+        )}
       </div>
     </main>
   );

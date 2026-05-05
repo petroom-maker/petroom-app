@@ -3,6 +3,9 @@ import { ChangeEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type FormState = {
+  userName: string;
+  userContact: string;
+  contactPreference: string;
   damageType: string;
   damageRange: string;
   area: string;
@@ -14,12 +17,16 @@ type FormState = {
   sameMaterial: string;
   damagePosition: string;
   repairIntent: string;
+  memo: string;
   images: string[];
 };
 
 export default function PetRoomForm() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>({
+    userName: '',
+    userContact: '',
+    contactPreference: '',
     damageType: '',
     damageRange: '',
     area: '',
@@ -31,10 +38,12 @@ export default function PetRoomForm() {
     sameMaterial: '',
     damagePosition: '',
     repairIntent: '',
+    memo: '',
     images: [] as string[],
   });
 
   const [previews, setPreviews] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mainColor = '#1a4a5e';
 
@@ -93,9 +102,12 @@ export default function PetRoomForm() {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const requiredFields: Array<keyof Pick<
       FormState,
+      | 'userName'
+      | 'userContact'
+      | 'contactPreference'
       | 'damageType'
       | 'damageRange'
       | 'layout'
@@ -105,6 +117,9 @@ export default function PetRoomForm() {
       | 'stuff'
       | 'schedule'
     >> = [
+      'userName',
+      'userContact',
+      'contactPreference',
       'damageType',
       'damageRange',
       'layout',
@@ -118,7 +133,29 @@ export default function PetRoomForm() {
     const hasMissingRequiredField = requiredFields.some((field) => !form[field]);
 
     if (hasMissingRequiredField || !form.location.trim() || form.images.length < 2) {
-      alert('견적 범위 산출을 위해 모든 필수 정보를 입력하고 사진을 최소 2장 이상 첨부해주세요.');
+      alert('견적 요청을 위해 필수 정보를 입력하고 사진을 최소 2장 이상 첨부해주세요.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const response = await fetch('/api/requests', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...form,
+        images: undefined,
+        imageCount: form.images.length,
+      }),
+    });
+    const result = await response.json();
+
+    setIsSubmitting(false);
+
+    if (!response.ok || !result.ok) {
+      alert(result.message ?? '견적 요청 저장 중 문제가 발생했습니다.');
       return;
     }
 
@@ -134,6 +171,12 @@ export default function PetRoomForm() {
         params.set(key, value);
       }
     });
+
+    params.set('requestId', result.requestId);
+    params.set('estimatedMin', String(result.estimate.minPrice));
+    params.set('estimatedMax', String(result.estimate.maxPrice));
+    params.set('confidence', String(result.estimate.confidence));
+    params.set('confidenceLabel', result.estimate.confidenceLabel);
 
     router.push(`/result?${params.toString()}`);
   };
@@ -176,6 +219,35 @@ export default function PetRoomForm() {
         >
           💡 <b>정확하게 입력할수록 실제 견적과의 오차가 줄어듭니다</b><br />
           입력 정보가 부족하면 현장에서 추가 비용이 발생할 수 있습니다.
+        </div>
+
+        <div style={card}>
+          <label style={label}>0. 견적 받을 연락처</label>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            <input
+              placeholder="이름 또는 닉네임"
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb',
+              }}
+              value={form.userName}
+              onChange={(e) => setForm({ ...form, userName: e.target.value })}
+            />
+            <input
+              placeholder="연락처 또는 카카오톡 ID"
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb',
+              }}
+              value={form.userContact}
+              onChange={(e) => setForm({ ...form, userContact: e.target.value })}
+            />
+            {selectBox('contactPreference', ['카카오톡', '문자', '전화 가능'])}
+          </div>
         </div>
 
         <div style={card}>
@@ -260,6 +332,23 @@ export default function PetRoomForm() {
           />
         </div>
 
+        <div style={card}>
+          <label style={label}>12. 업체에게 전달할 메모</label>
+          <textarea
+            placeholder="예: 퇴거일 전까지 부분 복구를 원합니다. 방문 견적보다 사진 견적을 먼저 받고 싶습니다."
+            style={{
+              width: '100%',
+              minHeight: '96px',
+              padding: '12px',
+              borderRadius: '10px',
+              border: '1px solid #e5e7eb',
+              resize: 'vertical',
+            }}
+            value={form.memo}
+            onChange={(e) => setForm({ ...form, memo: e.target.value })}
+          />
+        </div>
+
         <div
           style={{
             background: '#dcfce7',
@@ -293,18 +382,20 @@ export default function PetRoomForm() {
 
         <button
           onClick={handleSubmit}
+          disabled={isSubmitting}
           style={{
             width: '100%',
             padding: '18px',
-            background: '#16a34a',
+            background: isSubmitting ? '#94a3b8' : '#16a34a',
             color: '#fff',
             border: 'none',
             borderRadius: '14px',
             fontWeight: '700',
             fontSize: '16px',
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
           }}
         >
-          예상 견적 범위 확인하기
+          {isSubmitting ? '견적 요청 저장 중...' : '예상 견적 범위 확인하기'}
         </button>
       </div>
     </main>
