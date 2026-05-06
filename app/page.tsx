@@ -546,7 +546,7 @@ export default function PetRoomForm() {
               />
             </div>
             <img
-              src="/shiba-progress.svg"
+              src="/shiba-progress.svg?v=a33de00"
               alt="진행 중인 시바견"
               style={{
                 position: 'absolute',
