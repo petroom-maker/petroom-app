@@ -2,6 +2,11 @@
 import { ChangeEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+type SelectOption = {
+  value: string;
+  description: string;
+};
+
 type FormState = {
   userName: string;
   userContact: string;
@@ -49,10 +54,11 @@ export default function PetRoomForm() {
 
   const card = {
     background: '#fff',
-    padding: '18px',
-    borderRadius: '14px',
+    padding: '20px',
+    borderRadius: '16px',
     marginBottom: '14px',
     border: '1px solid #e5e7eb',
+    boxShadow: '0 6px 18px rgba(15, 23, 42, 0.04)',
   };
 
   const label = {
@@ -60,6 +66,7 @@ export default function PetRoomForm() {
     marginBottom: '6px',
     display: 'block',
     color: mainColor,
+    fontSize: '17px',
   };
 
   const helpText = {
@@ -70,25 +77,44 @@ export default function PetRoomForm() {
   };
 
   const btn = (active: boolean) => ({
-    padding: '12px',
-    borderRadius: '10px',
+    padding: '13px 14px',
+    minHeight: '72px',
+    borderRadius: '12px',
     border: active ? '2px solid #16a34a' : '1px solid #e5e7eb',
     background: active ? '#f0fdf4' : '#fff',
     cursor: 'pointer',
-    textAlign: 'center' as const,
-    fontWeight: '600',
-    fontSize: '13px',
+    textAlign: 'left' as const,
   });
 
-  const selectBox = (field: keyof Omit<FormState, 'images'>, options: string[]) => (
+  const selectBox = (field: keyof Omit<FormState, 'images'>, options: SelectOption[]) => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px' }}>
       {options.map((opt) => (
         <div
-          key={opt}
-          onClick={() => setForm({ ...form, [field]: opt })}
-          style={btn(form[field] === opt)}
+          key={opt.value}
+          onClick={() => setForm({ ...form, [field]: opt.value })}
+          style={btn(form[field] === opt.value)}
         >
-          {opt}
+          <strong
+            style={{
+              display: 'block',
+              color: '#0f172a',
+              fontSize: '14px',
+              lineHeight: 1.25,
+              marginBottom: '5px',
+            }}
+          >
+            {opt.value}
+          </strong>
+          <span
+            style={{
+              display: 'block',
+              color: '#64748b',
+              fontSize: '12px',
+              lineHeight: 1.35,
+            }}
+          >
+            {opt.description}
+          </span>
         </div>
       ))}
     </div>
@@ -243,7 +269,7 @@ export default function PetRoomForm() {
               onChange={(e) => setForm({ ...form, userName: e.target.value })}
             />
             <input
-              placeholder="연락처 또는 카카오톡 ID"
+              placeholder="연락처"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -253,7 +279,10 @@ export default function PetRoomForm() {
               value={form.userContact}
               onChange={(e) => setForm({ ...form, userContact: e.target.value })}
             />
-            {selectBox('contactPreference', ['카카오톡', '문자', '전화 가능'])}
+            {selectBox('contactPreference', [
+              { value: '문자', description: '문자로만 연락받고 싶어요' },
+              { value: '전화 가능', description: '필요하면 전화 상담도 가능해요' },
+            ])}
           </div>
         </div>
 
@@ -263,7 +292,11 @@ export default function PetRoomForm() {
             어느 부분이 훼손되었는지 선택해주세요. 여러 곳이 함께 훼손된 경우에는
             벽지+장판을 선택하면 됩니다.
           </p>
-          {selectBox('damageType', ['벽지', '장판', '벽지+장판'])}
+          {selectBox('damageType', [
+            { value: '벽지', description: '벽면 종이, 실크벽지, 벽 하단 훼손' },
+            { value: '장판', description: '바닥 찍힘, 들뜸, 찢김, 오염' },
+            { value: '벽지+장판', description: '벽과 바닥이 함께 훼손됨' },
+          ])}
         </div>
 
         <div style={card}>
@@ -273,12 +306,12 @@ export default function PetRoomForm() {
             사진으로 함께 확인합니다.
           </p>
           {selectBox('damageRange', [
-            '손바닥 크기',
-            'A4 크기',
-            '벽/장판 일부',
-            '방 절반',
-            '방 전체',
-            '잘 모르겠음',
+            { value: '손바닥 크기', description: '작게 뜯기거나 긁힌 정도' },
+            { value: 'A4 크기', description: '종이 한 장 정도의 훼손' },
+            { value: '벽/장판 일부', description: '한쪽 면이나 바닥 일부만 훼손' },
+            { value: '방 절반', description: '한 공간의 절반 정도가 영향 있음' },
+            { value: '방 전체', description: '방 전체 시공 가능성이 있음' },
+            { value: '잘 모르겠음', description: '사진으로 판단이 필요해요' },
           ])}
         </div>
 
@@ -303,22 +336,44 @@ export default function PetRoomForm() {
 
         <div style={card}>
           <label style={label}>4. 공간 구조</label>
-          {selectBox('layout', ['원룸', '2룸 이상', '잘 모르겠음'])}
+          <p style={helpText}>복구가 필요한 공간이 어떤 구조인지 선택해주세요.</p>
+          {selectBox('layout', [
+            { value: '원룸', description: '방과 생활공간이 하나인 구조' },
+            { value: '2룸 이상', description: '방이 2개 이상인 구조' },
+            { value: '잘 모르겠음', description: '정확한 구조를 모르는 경우' },
+          ])}
         </div>
 
         <div style={card}>
           <label style={label}>5. 주거 유형</label>
-          {selectBox('housingType', ['아파트', '빌라·연립', '오피스텔', '기타'])}
+          <p style={helpText}>현재 거주 중인 집의 유형을 선택해주세요.</p>
+          {selectBox('housingType', [
+            { value: '아파트', description: '아파트 단지 또는 공동주택' },
+            { value: '빌라·연립', description: '빌라, 다세대, 연립주택' },
+            { value: '오피스텔', description: '오피스텔 또는 도시형 생활주택' },
+            { value: '기타', description: '위 항목에 해당하지 않음' },
+          ])}
         </div>
 
         <div style={card}>
           <label style={label}>6. 동일 자재 여부</label>
-          {selectBox('sameMaterial', ['있음', '없음', '모르겠음'])}
+          <p style={helpText}>같은 벽지나 장판 자재가 있으면 부분 복구 가능성이 높아집니다.</p>
+          {selectBox('sameMaterial', [
+            { value: '있음', description: '남은 벽지나 장판 자재가 있어요' },
+            { value: '없음', description: '같은 자재가 따로 없어요' },
+            { value: '모르겠음', description: '있는지 확인이 필요해요' },
+          ])}
         </div>
 
         <div style={card}>
           <label style={label}>7. 파손 위치</label>
-          {selectBox('damagePosition', ['하단', '중단', '상단', '혼합'])}
+          <p style={helpText}>훼손이 주로 어느 높이나 위치에 있는지 선택해주세요.</p>
+          {selectBox('damagePosition', [
+            { value: '하단', description: '바닥 가까이, 반려동물이 닿기 쉬운 위치' },
+            { value: '중단', description: '벽 가운데나 생활 높이 주변' },
+            { value: '상단', description: '천장 가까이 또는 높은 위치' },
+            { value: '혼합', description: '여러 위치에 함께 훼손됨' },
+          ])}
         </div>
 
         <div style={card}>
@@ -327,17 +382,31 @@ export default function PetRoomForm() {
             훼손된 부분만 고치고 싶은지, 색 차이나 자재 문제 때문에 전체 시공도 고려 가능한지
             선택해주세요.
           </p>
-          {selectBox('repairIntent', ['부분만 원함', '전체도 가능'])}
+          {selectBox('repairIntent', [
+            { value: '부분만 원함', description: '훼손된 부분만 최소 복구하고 싶어요' },
+            { value: '전체도 가능', description: '색 차이나 자재 문제면 전체 시공도 고려해요' },
+          ])}
         </div>
 
         <div style={card}>
           <label style={label}>9. 짐 여부</label>
-          {selectBox('stuff', ['없음', '일부 있음', '많음'])}
+          <p style={helpText}>작업 공간에 짐이 있으면 이동 시간이나 추가비가 생길 수 있습니다.</p>
+          {selectBox('stuff', [
+            { value: '없음', description: '작업 공간이 거의 비어 있어요' },
+            { value: '일부 있음', description: '작은 가구나 짐이 조금 있어요' },
+            { value: '많음', description: '가구 이동이나 정리가 필요해요' },
+          ])}
         </div>
 
         <div style={card}>
           <label style={label}>10. 일정</label>
-          {selectBox('schedule', ['3일 이내', '1주일 이내', '여유 있음', '협의 가능'])}
+          <p style={helpText}>작업이 필요한 시점을 선택해주세요. 급한 일정은 비용이 높아질 수 있습니다.</p>
+          {selectBox('schedule', [
+            { value: '3일 이내', description: '퇴거가 임박해 빠른 작업이 필요해요' },
+            { value: '1주일 이내', description: '이번 주 안에 작업하고 싶어요' },
+            { value: '여유 있음', description: '일정 조율에 여유가 있어요' },
+            { value: '협의 가능', description: '업체 가능 일정에 맞출 수 있어요' },
+          ])}
         </div>
 
         <div style={card}>
