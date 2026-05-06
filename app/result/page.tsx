@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { getEstimateRange } from '@/lib/estimate';
 
 const formatWon = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 
@@ -23,185 +24,18 @@ const normalizeHousingType = (housingType: string | null) => {
   return housingType === '원룸' ? '기타' : housingType;
 };
 
-const getTrustScore = (imageCount: number) => {
-  if (imageCount === 0) {
-    return 0;
-  }
-
-  if (imageCount <= 2) {
-    return 50;
-  }
-
-  if (imageCount <= 5) {
-    return 70;
-  }
-
-  return 82;
-};
-
-const getTrustLabel = (trustScore: number) => {
-  if (trustScore === 0) {
-    return '산출 불가';
-  }
-
-  if (trustScore < 60) {
-    return '보통';
-  }
-
-  if (trustScore < 80) {
-    return '양호';
-  }
-
-  return '높음';
-};
-
-const isFullReplacement = (damageRange: string, repairIntent: string) =>
-  damageRange.includes('전체') || repairIntent.includes('전체');
-
-const indicatesPartialOrSmallDamage = (damageRange: string) =>
-  damageRange.includes('부분') ||
-  damageRange.includes('일부') ||
-  damageRange.includes('손바닥') ||
-  damageRange.includes('A4');
-
-const isWallpaperPartialRepair = ({
-  damageType,
-  damageRange,
-  repairIntent,
-}: {
-  damageType: string;
-  damageRange: string;
-  repairIntent: string;
-}) =>
-  damageType === '벽지' &&
-  (repairIntent === '부분만 원함' || indicatesPartialOrSmallDamage(damageRange));
-
-const hasMultipleDamagedAreas = (damageType: string, damageRange: string, damagePosition: string) =>
-  damageType.includes('+') || damageRange.includes('절반') || damageRange.includes('전체') || damagePosition === '혼합';
-
-const getPartialRepairRange = ({
-  areaNumber,
-  damageType,
-  damageRange,
-  sameMaterial,
-  stuff,
-  schedule,
-  damagePosition,
-  repairIntent,
-}: {
-  areaNumber: number | null;
-  damageType: string;
-  damageRange: string;
-  sameMaterial: string;
-  stuff: string;
-  schedule: string;
-  damagePosition: string;
-  repairIntent: string;
-}) => {
-  let adjustment = 0;
-
-  if (sameMaterial === '없음' || sameMaterial === '모르겠음') {
-    adjustment += 15000;
-  }
-
-  if (stuff === '일부 있음') {
-    adjustment += 10000;
-  } else if (stuff === '많음') {
-    adjustment += 20000;
-  }
-
-  if (schedule === '3일 이내') {
-    adjustment += 15000;
-  }
-
-  if (hasMultipleDamagedAreas(damageType, damageRange, damagePosition)) {
-    adjustment += 20000;
-  }
-
-  if (isWallpaperPartialRepair({ damageType, damageRange, repairIntent })) {
-    const minBase = areaNumber !== null && areaNumber >= 10 ? 200000 : 180000;
-    const uncappedMaxPrice = 250000 + adjustment;
-
-    return {
-      minPrice: Math.min(minBase, 250000),
-      maxPrice: 250000,
-      cautionMessage:
-        uncappedMaxPrice > 250000
-          ? '부분 보수 기준을 초과할 수 있어 전체 시공 또는 현장 확인이 필요할 수 있습니다.'
-          : null,
-    };
-  }
-
-  return {
-    minPrice: 180000 + Math.round(adjustment * 0.5),
-    maxPrice: Math.min(250000 + adjustment, 320000),
-    cautionMessage: null,
-  };
-};
-
-const getFullReplacementRange = (areaNumber: number | null) => {
-  const area = areaNumber ?? 6;
-  const minUnitPrice = 42000;
-  const maxUnitPrice = 60000;
-
-  return {
-    minPrice: Math.max(Math.round((area * minUnitPrice) / 10000) * 10000, 250000),
-    maxPrice: Math.max(Math.round((area * maxUnitPrice) / 10000) * 10000, 360000),
-    cautionMessage: null,
-  };
-};
-
-const getEstimateRange = ({
-  areaNumber,
-  damageType,
-  damageRange,
-  sameMaterial,
-  stuff,
-  schedule,
-  damagePosition,
-  repairIntent,
-}: {
-  areaNumber: number | null;
-  damageType: string;
-  damageRange: string;
-  sameMaterial: string;
-  stuff: string;
-  schedule: string;
-  damagePosition: string;
-  repairIntent: string;
-}) => {
-  const partialRepairRange = getPartialRepairRange({
-    areaNumber,
-    damageType,
-    damageRange,
-    sameMaterial,
-    stuff,
-    schedule,
-    damagePosition,
-    repairIntent,
-  });
-
-  if (isWallpaperPartialRepair({ damageType, damageRange, repairIntent })) {
-    return partialRepairRange;
-  }
-
-  if (isFullReplacement(damageRange, repairIntent)) {
-    return getFullReplacementRange(areaNumber);
-  }
-
-  return partialRepairRange;
-};
-
 function ResultContent() {
   const searchParams = useSearchParams();
   const mainColor = '#1a4a5e';
   const highlight = '#16a34a';
   const requestId = searchParams.get('requestId') ?? '';
   const area = searchParams.get('area') ?? '';
-  const areaNumber = getAreaNumber(area);
   const areaDisplay = formatAreaDisplay(area);
   const damageType = searchParams.get('damageType') ?? '';
   const damageRange = searchParams.get('damageRange') ?? '';
+  const housingType = searchParams.get('housingType') ?? '';
+  const layout = searchParams.get('layout') ?? '';
+  const location = searchParams.get('location') ?? '';
   const sameMaterial = searchParams.get('sameMaterial') ?? '';
   const stuff = searchParams.get('stuff') ?? '';
   const schedule = searchParams.get('schedule') ?? '';
@@ -209,19 +43,22 @@ function ResultContent() {
   const repairIntent = searchParams.get('repairIntent') ?? '';
   const imageCountParam = Number(searchParams.get('imageCount') ?? '0');
   const imageCount = Number.isFinite(imageCountParam) ? imageCountParam : 0;
-  const trustScoreFromParams = Number(searchParams.get('confidence') ?? '0');
-  const trustScore = trustScoreFromParams || getTrustScore(imageCount);
-  const trustLabel = searchParams.get('confidenceLabel') ?? getTrustLabel(trustScore);
   const estimate = getEstimateRange({
-    areaNumber,
+    area,
     damageType,
     damageRange,
+    housingType,
+    layout,
+    location,
     sameMaterial,
     stuff,
     schedule,
     damagePosition,
     repairIntent,
+    imageCount,
   });
+  const trustScore = estimate.confidence;
+  const trustLabel = estimate.confidenceLabel;
   const minPrice = Number(searchParams.get('estimatedMin') ?? estimate.minPrice);
   const maxPrice = Number(searchParams.get('estimatedMax') ?? estimate.maxPrice);
   const cautionMessage = estimate.cautionMessage;
@@ -229,14 +66,14 @@ function ResultContent() {
     ['파손 유형', damageType],
     ['파손 범위', damageRange],
     ['면적', areaDisplay],
-    ['공간 구조', searchParams.get('layout')],
-    ['주거 유형', normalizeHousingType(searchParams.get('housingType'))],
+    ['공간 구조', layout],
+    ['주거 유형', normalizeHousingType(housingType)],
     ['동일 자재 여부', sameMaterial],
     ['파손 위치', damagePosition],
     ['복구 방식', repairIntent],
     ['짐 여부', stuff],
     ['일정', schedule],
-    ['지역', searchParams.get('location')],
+    ['지역', location],
     ['사진 수', `${imageCount}장`],
   ].filter(([, value]) => value);
   const analysisItems = [
@@ -344,10 +181,63 @@ function ResultContent() {
         </section>
 
         <section style={{ ...card, marginBottom: '14px' }}>
-          <h2 style={sectionTitle}>입력 정보 요약</h2>
+          <h2 style={sectionTitle}>견적 범위 산정 근거</h2>
+          <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
+            이 금액은 확정가가 아니라, 입력 정보와 현재 가격 기준을 조합한 예상 가드레일입니다.
+            업체 입찰가는 현장 조건에 따라 범위 안팎으로 달라질 수 있습니다.
+          </p>
           <ul
             style={{
               margin: 0,
+              padding: 0,
+              listStyle: 'none',
+              display: 'grid',
+              gap: '10px',
+            }}
+          >
+            {estimate.reasons.map((item) => (
+              <li
+                key={item}
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'flex-start',
+                  color: '#334155',
+                  fontSize: '14px',
+                  lineHeight: 1.55,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '999px',
+                    background: highlight,
+                    flex: '0 0 auto',
+                    marginTop: '7px',
+                  }}
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <details style={{ ...card, marginBottom: '14px' }}>
+          <summary
+            style={{
+              ...sectionTitle,
+              margin: 0,
+              cursor: 'pointer',
+              listStyle: 'none',
+            }}
+          >
+            입력 정보 요약 펼쳐보기
+          </summary>
+          <ul
+            style={{
+              margin: '14px 0 0',
               padding: 0,
               listStyle: 'none',
               display: 'grid',
@@ -379,7 +269,7 @@ function ResultContent() {
               </li>
             )}
           </ul>
-        </section>
+        </details>
 
         <section style={{ ...card, marginBottom: '14px' }}>
           <h2 style={sectionTitle}>견적 범위 신뢰도</h2>
@@ -421,10 +311,27 @@ function ResultContent() {
         <section style={{ ...card, marginBottom: '14px' }}>
           <h2 style={sectionTitle}>신뢰도 설명</h2>
           <p style={{ margin: 0, color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-            입력하신 사진과 정보를 내부 사례 데이터와 비교해 산출했습니다.
-            <br />
-            신뢰도가 높을수록 실제 입찰가가 이 범위 안에 들어올 가능성이 높습니다.
+            신뢰도는 사진 수뿐 아니라 면적, 자재 여부, 주거 유형, 일정 등 견적에 필요한
+            정보가 얼마나 구체적인지를 함께 반영합니다.
           </p>
+          <ul
+            style={{
+              margin: '12px 0 0',
+              padding: 0,
+              listStyle: 'none',
+              display: 'grid',
+              gap: '8px',
+            }}
+          >
+            {estimate.confidenceReasons.map((reason) => (
+              <li
+                key={reason}
+                style={{ color: '#64748b', fontSize: '13px', lineHeight: 1.5 }}
+              >
+                {reason}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section style={card}>
