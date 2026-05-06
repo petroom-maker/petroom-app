@@ -57,9 +57,16 @@ export default function PetRoomForm() {
 
   const label = {
     fontWeight: '700',
-    marginBottom: '10px',
+    marginBottom: '6px',
     display: 'block',
     color: mainColor,
+  };
+
+  const helpText = {
+    margin: '0 0 12px',
+    color: '#64748b',
+    fontSize: '13px',
+    lineHeight: 1.55,
   };
 
   const btn = (active: boolean) => ({
@@ -252,15 +259,23 @@ export default function PetRoomForm() {
 
         <div style={card}>
           <label style={label}>1. 파손 유형</label>
-          {selectBox('damageType', ['벽지', '장판', '벽지+장판', '문/몰딩'])}
+          <p style={helpText}>
+            어느 부분이 훼손되었는지 선택해주세요. 여러 곳이 함께 훼손된 경우에는
+            벽지+장판을 선택하면 됩니다.
+          </p>
+          {selectBox('damageType', ['벽지', '장판', '벽지+장판'])}
         </div>
 
         <div style={card}>
           <label style={label}>2. 파손 범위</label>
+          <p style={helpText}>
+            훼손된 크기와 범위를 가장 비슷한 항목으로 선택해주세요. 정확하지 않아도 괜찮고,
+            사진으로 함께 확인합니다.
+          </p>
           {selectBox('damageRange', [
             '손바닥 크기',
             'A4 크기',
-            '벽/바닥 일부',
+            '벽/장판 일부',
             '방 절반',
             '방 전체',
             '잘 모르겠음',
@@ -269,8 +284,12 @@ export default function PetRoomForm() {
 
         <div style={card}>
           <label style={label}>3. 면적</label>
+          <p style={helpText}>
+            복구가 필요한 방이나 공간의 대략적인 평수를 입력해주세요. 모르면 원룸, 작은방처럼
+            적어도 됩니다.
+          </p>
           <input
-            placeholder="예: 6평"
+            placeholder="예: 6평, 원룸, 작은방"
             style={{
               width: '100%',
               padding: '12px',
@@ -304,7 +323,11 @@ export default function PetRoomForm() {
 
         <div style={card}>
           <label style={label}>8. 복구 방식</label>
-          {selectBox('repairIntent', ['부분만 원함', '전체도 가능', '잘 모르겠음'])}
+          <p style={helpText}>
+            훼손된 부분만 고치고 싶은지, 색 차이나 자재 문제 때문에 전체 시공도 고려 가능한지
+            선택해주세요.
+          </p>
+          {selectBox('repairIntent', ['부분만 원함', '전체도 가능'])}
         </div>
 
         <div style={card}>
