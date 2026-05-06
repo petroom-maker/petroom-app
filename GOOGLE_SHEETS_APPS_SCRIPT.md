@@ -61,6 +61,10 @@ const SHEET_COLUMNS = {
 
 const PHOTO_FOLDER_NAME = 'PETROOM_REQUEST_PHOTOS';
 
+function authorizeDriveOnce() {
+  getPhotoFolder();
+}
+
 function getPhotoFolder() {
   const folders = DriveApp.getFoldersByName(PHOTO_FOLDER_NAME);
 
@@ -101,6 +105,15 @@ function saveRequestPhotos(values) {
   return urls.join('\n');
 }
 
+function safeSaveRequestPhotos(values) {
+  try {
+    return saveRequestPhotos(values);
+  } catch (error) {
+    console.error('Photo save failed', error);
+    return `PHOTO_ERROR: ${error.message}`;
+  }
+}
+
 function getRows(sheetName, requestId) {
   const columns = SHEET_COLUMNS[sheetName];
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
@@ -125,7 +138,7 @@ function getRows(sheetName, requestId) {
       });
       return item;
     })
-    .filter((item) => !requestId || item.request_id === requestId);
+    .filter((item) => !requestId || item.request_id === requestId || item['요청ID'] === requestId);
 }
 
 function doGet(e) {
@@ -168,7 +181,7 @@ function doPost(e) {
   }
 
   if (sheetName === 'requests') {
-    values.photo_urls = saveRequestPhotos(values);
+    values.photo_urls = safeSaveRequestPhotos(values);
   }
 
   sheet.appendRow(columns.map((column) => values[column] ?? ''));
@@ -180,6 +193,23 @@ function doPost(e) {
 ```
 
 ## 3. 웹앱으로 배포
+
+사진 저장은 Google Drive 권한이 필요하다. Apps Script 왼쪽 `프로젝트 설정`에서 `appsscript.json 매니페스트 파일 표시`를 켠 뒤, `appsscript.json`에 아래 내용을 넣는다.
+
+```json
+{
+  "timeZone": "Asia/Seoul",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+  ]
+}
+```
+
+그 다음 편집기에서 함수 선택을 `authorizeDriveOnce`로 바꾸고 `실행`을 눌러 Drive 권한을 승인한다.
 
 1. Apps Script 우측 상단 `배포 > 새 배포`
 2. 유형: `웹 앱`
