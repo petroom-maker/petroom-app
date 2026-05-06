@@ -183,8 +183,8 @@ function ResultContent() {
         <section style={{ ...card, marginBottom: '14px' }}>
           <h2 style={sectionTitle}>견적 범위 산정 근거</h2>
           <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-            이 금액은 확정가가 아니라, 입력 정보와 현재 가격 기준을 조합한 예상 가드레일입니다.
-            업체 입찰가는 현장 조건에 따라 범위 안팎으로 달라질 수 있습니다.
+            입력하신 파손 유형, 범위, 면적, 자재 여부를 기준으로 예상 금액을 계산했습니다.
+            실제 업체 견적은 사진과 현장 조건에 따라 달라질 수 있습니다.
           </p>
           <ul
             style={{
@@ -375,29 +375,39 @@ function ResultContent() {
         </section>
 
         {requestId && (
-          <section style={{ ...card, marginTop: '14px', borderColor: '#cbd5e1' }}>
-            <h2 style={sectionTitle}>업체 견적 입찰 링크</h2>
-            <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-              시공업체에게 아래 링크와 요청 ID를 전달하면, 같은 요청서를 기준으로 견적을
-              제출할 수 있습니다.
-            </p>
-            <a
-              href={`/contractor?requestId=${encodeURIComponent(requestId)}&min=${minPrice}&max=${maxPrice}`}
+          <section style={{ ...card, marginTop: '14px', borderColor: '#bbf7d0' }}>
+            <p
               style={{
-                display: 'block',
-                width: '100%',
-                padding: '14px',
-                borderRadius: '12px',
-                background: mainColor,
-                color: '#fff',
-                textAlign: 'center',
-                textDecoration: 'none',
-                fontSize: '14px',
+                margin: '0 0 8px',
+                color: '#166534',
+                fontSize: '13px',
                 fontWeight: 800,
               }}
             >
-              업체 견적 입력 화면 열기
-            </a>
+              입찰 요청 완료
+            </p>
+            <h2 style={{ ...sectionTitle, marginBottom: '8px' }}>업체 입찰 대기중</h2>
+            <p style={{ margin: '0 0 14px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
+              입력하신 요청서는 업체가 견적을 낼 수 있는 형태로 정리되었습니다. 업체 입찰이
+              도착하면 견적 금액, 작업 범위, 추가비 조건을 비교해 선택할 수 있습니다.
+            </p>
+            <div
+              style={{
+                display: 'grid',
+                gap: '8px',
+                padding: '12px',
+                borderRadius: '12px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#334155',
+                fontSize: '14px',
+              }}
+            >
+              <strong style={{ color: mainColor }}>다음 단계</strong>
+              <span>1. 업체가 요청서를 확인합니다.</span>
+              <span>2. 업체가 견적 금액과 작업 조건을 제출합니다.</span>
+              <span>3. 도착한 견적을 비교한 뒤 업체를 선택합니다.</span>
+            </div>
           </section>
         )}
       </div>
