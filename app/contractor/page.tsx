@@ -102,7 +102,11 @@ function ContractorContent() {
     <main style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
       <div style={{ maxWidth: '520px', margin: '0 auto' }}>
         <header style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <img src="/logo.png" alt="PET ROOM" style={{ width: '96px', marginBottom: '8px' }} />
+          <img
+            src="/logo.png"
+            alt="PET ROOM"
+            style={{ display: 'block', width: '96px', margin: '0 auto 8px' }}
+          />
           <h1 style={{ margin: 0, color: '#1a4a5e', fontSize: '24px' }}>업체 견적 입력</h1>
           <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '13px' }}>
             유저가 입력한 요청서를 기준으로 실제 가능한 견적을 남겨주세요.

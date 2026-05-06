@@ -112,7 +112,7 @@ function ResultContent() {
           <img
             src="/logo.png"
             alt="PET ROOM"
-            style={{ width: '120px', marginBottom: '10px' }}
+            style={{ display: 'block', width: '120px', margin: '0 auto 10px' }}
           />
 
           <h2 style={{ margin: 0 }}>PET ROOM</h2>

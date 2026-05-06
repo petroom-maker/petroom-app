@@ -505,7 +505,11 @@ export default function PetRoomForm() {
     <main style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
       <div style={{ maxWidth: '480px', margin: '0 auto' }}>
         <header style={{ textAlign: 'center', marginBottom: '22px' }}>
-          <img src="/logo.png" alt="PET ROOM" style={{ width: '104px', marginBottom: '8px' }} />
+          <img
+            src="/logo.png"
+            alt="PET ROOM"
+            style={{ display: 'block', width: '104px', margin: '0 auto 8px' }}
+          />
           <h1 style={{ margin: 0, color: '#0f172a', fontSize: '28px', lineHeight: 1.15 }}>PET ROOM</h1>
           <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#64748b' }}>
             하나씩 답하면 예상 견적 범위를 확인할 수 있어요
