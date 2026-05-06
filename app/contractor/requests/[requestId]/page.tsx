@@ -52,6 +52,23 @@ const parsePhotoUrls = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const getDriveFileId = (url: string) => {
+  const idFromQuery = url.match(/[?&]id=([^&]+)/)?.[1];
+  const idFromPath = url.match(/\/file\/d\/([^/]+)/)?.[1];
+
+  return idFromQuery || idFromPath || '';
+};
+
+const getPhotoDisplayUrl = (url: string) => {
+  const fileId = getDriveFileId(url);
+
+  if (!fileId) {
+    return url;
+  }
+
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+};
+
 export default function ContractorRequestDetailPage() {
   const params = useParams<{ requestId: string }>();
   const requestId = params.requestId;
@@ -355,9 +372,15 @@ export default function ContractorRequestDetailPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
               {photoUrls.map((url, index) => (
-                <a key={url} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+                <a
+                  key={`${url}-${index}`}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'block', textDecoration: 'none' }}
+                >
                   <img
-                    src={url}
+                    src={getPhotoDisplayUrl(url)}
                     alt={`파손 사진 ${index + 1}`}
                     style={{
                       width: '100%',
