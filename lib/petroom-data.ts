@@ -47,47 +47,57 @@ const toNumberValue = (value: unknown) => {
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
+const pickValue = (row: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+      return row[key];
+    }
+  }
+
+  return '';
+};
+
 export const normalizeRequest = (row: Record<string, unknown>): RequestRecord => ({
-  request_id: toStringValue(row.request_id),
-  created_at: toStringValue(row.created_at),
-  user_name: toStringValue(row.user_name),
-  user_contact: toStringValue(row.user_contact),
-  contact_preference: toStringValue(row.contact_preference),
-  region: toStringValue(row.region),
-  damage_type: toStringValue(row.damage_type),
-  damage_scope: toStringValue(row.damage_scope),
-  housing_type: toStringValue(row.housing_type),
-  room_type: toStringValue(row.room_type),
-  area_text: toStringValue(row.area_text),
-  material_match: toStringValue(row.material_match),
-  damage_position: toStringValue(row.damage_position),
-  repair_intent: toStringValue(row.repair_intent),
-  furniture_level: toStringValue(row.furniture_level),
-  schedule: toStringValue(row.schedule),
-  user_memo: toStringValue(row.user_memo),
-  image_count: toNumberValue(row.image_count),
-  estimated_min: toNumberValue(row.estimated_min),
-  estimated_max: toNumberValue(row.estimated_max),
-  confidence: toNumberValue(row.confidence),
-  confidence_label: toStringValue(row.confidence_label),
-  status: toStringValue(row.status || '입찰대기'),
+  request_id: toStringValue(pickValue(row, 'request_id', '요청ID')),
+  created_at: toStringValue(pickValue(row, 'created_at', '요청일시')),
+  user_name: toStringValue(pickValue(row, 'user_name', '고객명')),
+  user_contact: toStringValue(pickValue(row, 'user_contact', '고객연락처')),
+  contact_preference: toStringValue(pickValue(row, 'contact_preference', '선호연락방식')),
+  region: toStringValue(pickValue(row, 'region', '지역')),
+  damage_type: toStringValue(pickValue(row, 'damage_type', '파손유형')),
+  damage_scope: toStringValue(pickValue(row, 'damage_scope', '파손범위')),
+  housing_type: toStringValue(pickValue(row, 'housing_type', '주거유형')),
+  room_type: toStringValue(pickValue(row, 'room_type', '공간구조')),
+  area_text: toStringValue(pickValue(row, 'area_text', '면적')),
+  material_match: toStringValue(pickValue(row, 'material_match', '동일자재여부')),
+  damage_position: toStringValue(pickValue(row, 'damage_position', '파손위치')),
+  repair_intent: toStringValue(pickValue(row, 'repair_intent', '복구방식')),
+  furniture_level: toStringValue(pickValue(row, 'furniture_level', '짐여부')),
+  schedule: toStringValue(pickValue(row, 'schedule', '희망일정')),
+  user_memo: toStringValue(pickValue(row, 'user_memo', '고객메모')),
+  image_count: toNumberValue(pickValue(row, 'image_count', '사진수')),
+  estimated_min: toNumberValue(pickValue(row, 'estimated_min', '예상최소금액')),
+  estimated_max: toNumberValue(pickValue(row, 'estimated_max', '예상최대금액')),
+  confidence: toNumberValue(pickValue(row, 'confidence', '신뢰도')),
+  confidence_label: toStringValue(pickValue(row, 'confidence_label', '신뢰도라벨')),
+  status: toStringValue(pickValue(row, 'status', '상태') || '입찰대기'),
 });
 
 export const normalizeBid = (row: Record<string, unknown>): BidRecord => ({
-  bid_id: toStringValue(row.bid_id),
-  request_id: toStringValue(row.request_id),
-  submitted_at: toStringValue(row.submitted_at),
-  contractor_name: toStringValue(row.contractor_name),
-  contractor_contact: toStringValue(row.contractor_contact),
-  bid_amount: toStringValue(row.bid_amount),
-  work_scope: toStringValue(row.work_scope),
-  included_items: toStringValue(row.included_items),
-  excluded_items: toStringValue(row.excluded_items),
-  extra_cost_conditions: toStringValue(row.extra_cost_conditions),
-  available_date: toStringValue(row.available_date),
-  visit_required: toStringValue(row.visit_required),
-  above_range_reason: toStringValue(row.above_range_reason),
-  bid_status: toStringValue(row.bid_status || '제출'),
+  bid_id: toStringValue(pickValue(row, 'bid_id', '입찰ID')),
+  request_id: toStringValue(pickValue(row, 'request_id', '요청ID')),
+  submitted_at: toStringValue(pickValue(row, 'submitted_at', '입찰일시')),
+  contractor_name: toStringValue(pickValue(row, 'contractor_name', '업체명')),
+  contractor_contact: toStringValue(pickValue(row, 'contractor_contact', '업체연락처')),
+  bid_amount: toStringValue(pickValue(row, 'bid_amount', '입찰금액')),
+  work_scope: toStringValue(pickValue(row, 'work_scope', '작업범위')),
+  included_items: toStringValue(pickValue(row, 'included_items', '포함항목')),
+  excluded_items: toStringValue(pickValue(row, 'excluded_items', '불포함항목')),
+  extra_cost_conditions: toStringValue(pickValue(row, 'extra_cost_conditions', '추가비조건')),
+  available_date: toStringValue(pickValue(row, 'available_date', '가능일정')),
+  visit_required: toStringValue(pickValue(row, 'visit_required', '방문필요여부')),
+  above_range_reason: toStringValue(pickValue(row, 'above_range_reason', '범위초과사유')),
+  bid_status: toStringValue(pickValue(row, 'bid_status', '입찰상태') || '제출'),
 });
 
 export const demoRequests: RequestRecord[] = [
