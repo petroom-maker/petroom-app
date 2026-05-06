@@ -16,8 +16,8 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      source: requests.length > 0 ? 'google_sheets' : 'demo',
-      requests: requests.length > 0 ? requests : demoRequests,
+      source: sheetResult.skipped ? 'demo' : 'google_sheets',
+      requests: sheetResult.skipped ? demoRequests : requests,
       sheetResult,
     });
   } catch (error) {
