@@ -39,6 +39,7 @@ const SHEET_COLUMNS = {
     'confidence',
     'confidence_label',
     'status',
+    'photo_urls',
   ],
   bids: [
     'bid_id',
@@ -57,6 +58,48 @@ const SHEET_COLUMNS = {
     'bid_status',
   ],
 };
+
+const PHOTO_FOLDER_NAME = 'PETROOM_REQUEST_PHOTOS';
+
+function getPhotoFolder() {
+  const folders = DriveApp.getFoldersByName(PHOTO_FOLDER_NAME);
+
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+
+  return DriveApp.createFolder(PHOTO_FOLDER_NAME);
+}
+
+function saveRequestPhotos(values) {
+  const photos = values.photo_data_urls || [];
+
+  if (!Array.isArray(photos) || photos.length === 0) {
+    return '';
+  }
+
+  const folder = getPhotoFolder();
+  const requestId = values.request_id || 'request';
+  const urls = [];
+
+  photos.forEach((dataUrl, index) => {
+    const match = String(dataUrl).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+
+    if (!match) {
+      return;
+    }
+
+    const mimeType = match[1];
+    const extension = mimeType.split('/')[1] || 'jpg';
+    const bytes = Utilities.base64Decode(match[2]);
+    const blob = Utilities.newBlob(bytes, mimeType, `${requestId}_${index + 1}.${extension}`);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    urls.push(`https://drive.google.com/uc?export=view&id=${file.getId()}`);
+  });
+
+  return urls.join('\n');
+}
 
 function getRows(sheetName, requestId) {
   const columns = SHEET_COLUMNS[sheetName];
@@ -124,6 +167,10 @@ function doPost(e) {
     sheet.appendRow(columns);
   }
 
+  if (sheetName === 'requests') {
+    values.photo_urls = saveRequestPhotos(values);
+  }
+
   sheet.appendRow(columns.map((column) => values[column] ?? ''));
 
   return ContentService
@@ -157,5 +204,5 @@ GOOGLE_SHEETS_WEBHOOK_URL=복사한_Apps_Script_Web_App_URL
 - `/contractor/requests`: `requests` 탭의 유저 요청 목록 조회
 - `/contractor/requests/[requestId]`: 요청 상세와 해당 요청의 `bids` 탭 입찰 조회
 
-사진은 현재 Google Sheet에 직접 저장하지 않고 `image_count`만 저장한다.
-운영 단계에서는 Vercel Blob, Cloudinary, Supabase Storage 중 하나에 사진을 저장하고 URL을 `photos` 탭에 저장하는 구조로 확장한다.
+사진은 Apps Script가 Google Drive의 `PETROOM_REQUEST_PHOTOS` 폴더에 저장하고, 공개 보기 URL을 `requests` 탭의 `사진URL` 컬럼에 저장한다.
+운영 고도화 단계에서는 Vercel Blob, Cloudinary, Supabase Storage 중 하나로 이전할 수 있다.

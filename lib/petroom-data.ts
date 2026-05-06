@@ -17,6 +17,7 @@ export type RequestRecord = {
   schedule: string;
   user_memo: string;
   image_count: number;
+  photo_urls: string;
   estimated_min: number;
   estimated_max: number;
   confidence: number;
@@ -76,6 +77,7 @@ export const normalizeRequest = (row: Record<string, unknown>): RequestRecord =>
   schedule: toStringValue(pickValue(row, 'schedule', '희망일정')),
   user_memo: toStringValue(pickValue(row, 'user_memo', '고객메모')),
   image_count: toNumberValue(pickValue(row, 'image_count', '사진수')),
+  photo_urls: toStringValue(pickValue(row, 'photo_urls', '사진URL')),
   estimated_min: toNumberValue(pickValue(row, 'estimated_min', '예상최소금액')),
   estimated_max: toNumberValue(pickValue(row, 'estimated_max', '예상최대금액')),
   confidence: toNumberValue(pickValue(row, 'confidence', '신뢰도')),
@@ -120,6 +122,7 @@ export const demoRequests: RequestRecord[] = [
     schedule: '1주일 이내',
     user_memo: '퇴거 전 부분 복구 견적을 먼저 비교하고 싶습니다.',
     image_count: 3,
+    photo_urls: '',
     estimated_min: 180000,
     estimated_max: 280000,
     confidence: 72,
@@ -145,6 +148,7 @@ export const demoRequests: RequestRecord[] = [
     schedule: '협의 가능',
     user_memo: '사진 기준 견적 가능 여부를 알고 싶습니다.',
     image_count: 2,
+    photo_urls: '',
     estimated_min: 120000,
     estimated_max: 210000,
     confidence: 64,

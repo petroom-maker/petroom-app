@@ -46,6 +46,12 @@ const scheduleOptions = ['3일 이내 가능', '1주일 이내 가능', '주말 
 const visitOptions = ['사진 견적 가능', '방문 확인 필요', '상황에 따라 협의'];
 const aboveRangeOptions = ['해당 없음', '자재 수급 필요', '전체 시공 필요', '짐 이동 필요', '기존 상태 확인 필요'];
 
+const parsePhotoUrls = (value: string) =>
+  value
+    .split(/\n|,\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 export default function ContractorRequestDetailPage() {
   const params = useParams<{ requestId: string }>();
   const requestId = params.requestId;
@@ -58,6 +64,7 @@ export default function ContractorRequestDetailPage() {
   const [message, setMessage] = useState('');
   const mainColor = '#1a4a5e';
   const highlight = '#16a34a';
+  const photoUrls = request ? parsePhotoUrls(request.photo_urls) : [];
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -333,6 +340,37 @@ export default function ContractorRequestDetailPage() {
             >
               {request.user_memo}
             </p>
+          )}
+        </section>
+
+        <section style={{ ...card, marginBottom: '14px' }}>
+          <h2 style={{ margin: '0 0 8px', color: mainColor, fontSize: '17px' }}>파손 사진</h2>
+          <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '13px', lineHeight: 1.6 }}>
+            사진을 기준으로 파손 범위, 자재 상태, 부분 복구 가능 여부를 먼저 확인해주세요.
+          </p>
+          {photoUrls.length === 0 ? (
+            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+              저장된 사진 URL이 없습니다. 새 요청부터 사진이 표시됩니다.
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+              {photoUrls.map((url, index) => (
+                <a key={url} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+                  <img
+                    src={url}
+                    alt={`파손 사진 ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      aspectRatio: '1 / 1',
+                      objectFit: 'cover',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      background: '#f8fafc',
+                    }}
+                  />
+                </a>
+              ))}
+            </div>
           )}
         </section>
 

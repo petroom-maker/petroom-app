@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const requestId = makeId('req');
     const createdAt = new Date().toISOString();
     const imageCount = Number(body.imageCount ?? 0);
+    const images = Array.isArray(body.images) ? body.images : [];
     const estimate = getEstimateRange({
       area: body.area ?? '',
       damageType: body.damageType ?? '',
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
       schedule: body.schedule ?? '',
       user_memo: body.memo ?? '',
       image_count: imageCount,
+      photo_data_urls: images,
+      photo_urls: '',
       estimated_min: estimate.minPrice,
       estimated_max: estimate.maxPrice,
       confidence: estimate.confidence,

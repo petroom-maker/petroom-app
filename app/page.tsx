@@ -65,6 +65,37 @@ const initialForm: FormState = {
   images: [],
 };
 
+const resizeImage = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error('사진을 읽을 수 없습니다.'));
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onerror = () => reject(new Error('사진을 처리할 수 없습니다.'));
+      image.onload = () => {
+        const maxSize = 1200;
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+          reject(new Error('사진을 처리할 수 없습니다.'));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.78));
+      };
+      image.src = String(reader.result);
+    };
+
+    reader.readAsDataURL(file);
+  });
+
 const steps: Step[] = [
   {
     type: 'select',
@@ -261,19 +292,15 @@ export default function PetRoomForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImage = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImage = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm((prev) => ({
-          ...prev,
-          images: [...prev.images, reader.result as string],
-        }));
-        setPreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    const resizedImages = await Promise.all(files.map((file) => resizeImage(file)));
+
+    setForm((prev) => ({
+      ...prev,
+      images: [...prev.images, ...resizedImages],
+    }));
+    setPreviews((prev) => [...prev, ...resizedImages]);
   };
 
   const canProceed = () => {
@@ -324,7 +351,6 @@ export default function PetRoomForm() {
       },
       body: JSON.stringify({
         ...form,
-        images: undefined,
         imageCount: form.images.length,
       }),
     });
