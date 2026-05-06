@@ -1,6 +1,6 @@
 # PET ROOM Google Sheets 연동 방법
 
-이 앱은 `GOOGLE_SHEETS_WEBHOOK_URL` 환경변수가 있으면 유저 견적 요청과 업체 견적을 Google Sheets에 저장한다.
+이 앱은 `GOOGLE_SHEETS_WEBHOOK_URL` 환경변수가 있으면 유저 견적 요청과 업체 견적을 Google Sheets에 저장하고, 업체 요청함에서 Google Sheets 데이터를 읽어온다.
 
 ## 1. Google Sheet 탭 만들기
 
@@ -58,6 +58,48 @@ const SHEET_COLUMNS = {
   ],
 };
 
+function getRows(sheetName, requestId) {
+  const columns = SHEET_COLUMNS[sheetName];
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+
+  if (!columns || !sheet) {
+    return [];
+  }
+
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length <= 1) {
+    return [];
+  }
+
+  const headers = values[0];
+
+  return values.slice(1)
+    .map((row) => {
+      const item = {};
+      headers.forEach((header, index) => {
+        item[header] = row[index];
+      });
+      return item;
+    })
+    .filter((item) => !requestId || item.request_id === requestId);
+}
+
+function doGet(e) {
+  const sheetName = e.parameter.sheet;
+  const requestId = e.parameter.request_id || '';
+
+  if (!SHEET_COLUMNS[sheetName]) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, message: 'Unknown sheet', rows: [] }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, rows: getRows(sheetName, requestId) }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   const payload = JSON.parse(e.postData.contents);
   const sheetName = payload.sheet;
@@ -108,10 +150,12 @@ GOOGLE_SHEETS_WEBHOOK_URL=복사한_Apps_Script_Web_App_URL
 
 로컬 테스트는 `.env.local` 파일을 만들고 같은 값을 넣는다.
 
-## 5. 현재 저장되는 데이터
+## 5. 현재 저장되고 읽는 데이터
 
 - `/api/requests`: 유저 요청, 예상 견적 범위, 신뢰도 저장
 - `/api/bids`: 업체 견적, 작업 범위, 추가비 조건 저장
+- `/contractor/requests`: `requests` 탭의 유저 요청 목록 조회
+- `/contractor/requests/[requestId]`: 요청 상세와 해당 요청의 `bids` 탭 입찰 조회
 
 사진은 현재 Google Sheet에 직접 저장하지 않고 `image_count`만 저장한다.
 운영 단계에서는 Vercel Blob, Cloudinary, Supabase Storage 중 하나에 사진을 저장하고 URL을 `photos` 탭에 저장하는 구조로 확장한다.

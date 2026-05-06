@@ -1,9 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEstimateRange } from '@/lib/estimate';
-import { postToGoogleSheet } from '@/lib/sheets';
+import { demoRequests, normalizeRequest } from '@/lib/petroom-data';
+import { postToGoogleSheet, readFromGoogleSheet } from '@/lib/sheets';
 
 const makeId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+export async function GET() {
+  try {
+    const sheetResult = await readFromGoogleSheet({ sheet: 'requests' });
+    const requests = sheetResult.rows
+      .map((row) => normalizeRequest(row))
+      .filter((row) => row.request_id)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return NextResponse.json({
+      ok: true,
+      source: requests.length > 0 ? 'google_sheets' : 'demo',
+      requests: requests.length > 0 ? requests : demoRequests,
+      sheetResult,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json({
+      ok: true,
+      source: 'demo',
+      requests: demoRequests,
+      sheetResult: {
+        ok: false,
+        message: 'Google Sheets 읽기 설정이 아직 준비되지 않아 데모 요청을 표시합니다.',
+      },
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {

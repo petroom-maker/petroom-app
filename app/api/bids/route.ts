@@ -1,8 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { postToGoogleSheet } from '@/lib/sheets';
+import { normalizeBid } from '@/lib/petroom-data';
+import { postToGoogleSheet, readFromGoogleSheet } from '@/lib/sheets';
 
 const makeId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+export async function GET(request: NextRequest) {
+  try {
+    const requestId = request.nextUrl.searchParams.get('requestId') ?? '';
+    const sheetResult = await readFromGoogleSheet({
+      sheet: 'bids',
+      requestId,
+    });
+    const bids = sheetResult.rows
+      .map((row) => normalizeBid(row))
+      .filter((row) => !requestId || row.request_id === requestId)
+      .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
+
+    return NextResponse.json({
+      ok: true,
+      source: 'google_sheets',
+      bids,
+      sheetResult,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json({
+      ok: true,
+      source: 'demo',
+      bids: [],
+      sheetResult: {
+        ok: false,
+        message: 'Google Sheets 읽기 설정이 아직 준비되지 않아 입찰 목록을 비워둡니다.',
+      },
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {

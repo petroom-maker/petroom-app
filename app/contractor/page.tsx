@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 type BidForm = {
@@ -127,6 +128,25 @@ function ContractorContent() {
             {Number(max).toLocaleString('ko-KR')}원
           </section>
         )}
+
+        <Link
+          href="/contractor/requests"
+          style={{
+            display: 'block',
+            marginBottom: '14px',
+            padding: '14px',
+            borderRadius: '14px',
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            color: '#166534',
+            fontSize: '14px',
+            fontWeight: 900,
+            textAlign: 'center',
+            textDecoration: 'none',
+          }}
+        >
+          업체 요청함에서 입찰할 요청 보기
+        </Link>
 
         <section style={card}>
           <label style={label}>요청 ID</label>
