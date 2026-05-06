@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const { requestId } = await context.params;
 
   try {
-    const sheetResult = await readFromGoogleSheet({ sheet: 'requests', requestId });
+    const sheetResult = await readFromGoogleSheet({ sheet: 'requests' });
     const requests = sheetResult.rows.map((row) => normalizeRequest(row));
     const requestRecord = requests.find((row) => row.request_id === requestId);
 

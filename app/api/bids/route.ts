@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const requestId = request.nextUrl.searchParams.get('requestId') ?? '';
     const sheetResult = await readFromGoogleSheet({
       sheet: 'bids',
-      requestId,
     });
     const bids = sheetResult.rows
       .map((row) => normalizeBid(row))
