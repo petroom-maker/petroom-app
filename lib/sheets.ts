@@ -73,7 +73,14 @@ export const readFromGoogleSheet = async ({ sheet, requestId }: ReadSheetPayload
     throw new Error(`Google Sheets read failed: ${response.status}`);
   }
 
-  const result = await response.json();
+  const text = await response.text();
+  let result: { ok?: boolean; rows?: Record<string, unknown>[] };
+
+  try {
+    result = JSON.parse(text);
+  } catch {
+    throw new Error(`Google Sheets read returned non-JSON: ${text.slice(0, 160)}`);
+  }
 
   return {
     ok: Boolean(result.ok),

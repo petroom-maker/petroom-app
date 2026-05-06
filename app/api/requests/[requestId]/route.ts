@@ -8,8 +8,11 @@ type RouteContext = {
   }>;
 };
 
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error');
+
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { requestId } = await context.params;
+  let sheetError = '';
 
   try {
     const sheetResult = await readFromGoogleSheet({ sheet: 'requests' });
@@ -26,6 +29,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     }
   } catch (error) {
     console.error(error);
+    sheetError = getErrorMessage(error);
   }
 
   const demoRequest = demoRequests.find((row) => row.request_id === requestId);
@@ -35,6 +39,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       ok: true,
       source: 'demo',
       request: demoRequest,
+      sheetResult: {
+        ok: false,
+        error: sheetError,
+      },
     });
   }
 
@@ -42,6 +50,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     {
       ok: false,
       message: '요청서를 찾을 수 없습니다.',
+      sheetResult: {
+        ok: false,
+        error: sheetError,
+      },
     },
     { status: 404 },
   );

@@ -5,6 +5,8 @@ import { postToGoogleSheet, readFromGoogleSheet } from '@/lib/sheets';
 const makeId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error');
+
 export async function GET(request: NextRequest) {
   try {
     const requestId = request.nextUrl.searchParams.get('requestId') ?? '';
@@ -31,6 +33,7 @@ export async function GET(request: NextRequest) {
       bids: [],
       sheetResult: {
         ok: false,
+        error: getErrorMessage(error),
         message: 'Google Sheets 읽기 설정이 아직 준비되지 않아 입찰 목록을 비워둡니다.',
       },
     });

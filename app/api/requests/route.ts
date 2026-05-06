@@ -6,6 +6,8 @@ import { postToGoogleSheet, readFromGoogleSheet } from '@/lib/sheets';
 const makeId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unknown error');
+
 export async function GET() {
   try {
     const sheetResult = await readFromGoogleSheet({ sheet: 'requests' });
@@ -29,6 +31,7 @@ export async function GET() {
       requests: demoRequests,
       sheetResult: {
         ok: false,
+        error: getErrorMessage(error),
         message: 'Google Sheets 읽기 설정이 아직 준비되지 않아 데모 요청을 표시합니다.',
       },
     });
