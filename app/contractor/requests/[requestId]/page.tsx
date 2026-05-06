@@ -33,6 +33,19 @@ const emptyBidForm: BidForm = {
 
 const formatWon = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 
+const workScopeOptions = [
+  '부분 복구 가능',
+  '부분 복구 가능하나 색 차이 있음',
+  '전체 시공 권장',
+  '사진만으로 판단 어려움',
+];
+
+const includedItemOptions = ['자재비 포함', '기본 시공 포함', '폐기물 정리 포함', '간단한 짐 이동 포함'];
+const extraCostOptions = ['추가비 없음', '짐 이동 시 추가비', '자재 변경 시 추가비', '현장 추가 훼손 시 변동'];
+const scheduleOptions = ['3일 이내 가능', '1주일 이내 가능', '주말 가능', '일정 협의 필요'];
+const visitOptions = ['사진 견적 가능', '방문 확인 필요', '상황에 따라 협의'];
+const aboveRangeOptions = ['해당 없음', '자재 수급 필요', '전체 시공 필요', '짐 이동 필요', '기존 상태 확인 필요'];
+
 export default function ContractorRequestDetailPage() {
   const params = useParams<{ requestId: string }>();
   const requestId = params.requestId;
@@ -94,6 +107,23 @@ export default function ContractorRequestDetailPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const toggleListValue = (field: keyof BidForm, value: string) => {
+    setForm((prev) => {
+      const selected = prev[field]
+        .split(', ')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const next = selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value];
+
+      return {
+        ...prev,
+        [field]: next.join(', '),
+      };
+    });
+  };
+
   const submitBid = async () => {
     if (
       !form.contractorName.trim() ||
@@ -147,10 +177,57 @@ export default function ContractorRequestDetailPage() {
   };
   const labelStyle = {
     display: 'block',
-    marginBottom: '8px',
+    marginBottom: '6px',
     color: mainColor,
     fontSize: '14px',
     fontWeight: 800,
+  };
+  const helpStyle = {
+    margin: '0 0 10px',
+    color: '#64748b',
+    fontSize: '12px',
+    lineHeight: 1.55,
+  };
+
+  const renderChoiceGroup = (
+    field: keyof BidForm,
+    options: string[],
+    multiple = false,
+  ) => {
+    const selectedValues = form[field]
+      .split(', ')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+        {options.map((option) => {
+          const active = multiple ? selectedValues.includes(option) : form[field] === option;
+
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => (multiple ? toggleListValue(field, option) : update(field, option))}
+              style={{
+                minHeight: '48px',
+                padding: '10px 12px',
+                borderRadius: '12px',
+                border: active ? `2px solid ${highlight}` : '1px solid #dbe3ea',
+                background: active ? '#f0fdf4' : '#fff',
+                color: active ? '#166534' : '#334155',
+                fontSize: '13px',
+                fontWeight: 800,
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -280,17 +357,28 @@ export default function ContractorRequestDetailPage() {
 
         <section style={card}>
           <h2 style={{ margin: '0 0 12px', color: mainColor, fontSize: '17px' }}>견적 입찰하기</h2>
+          <p style={{ margin: '0 0 14px', color: '#64748b', fontSize: '13px', lineHeight: 1.6 }}>
+            요청 정보의 파손 유형, 범위, 자재 여부, 짐 여부, 희망 일정을 보고 실제 가능한
+            금액과 작업 조건을 선택해주세요. 대부분은 버튼으로 선택하고, 필요한 말만 짧게
+            적으면 됩니다.
+          </p>
           <div style={{ display: 'grid', gap: '12px' }}>
             <div>
               <label style={labelStyle}>업체명 / 담당자명</label>
+              <p style={helpStyle}>고객에게 보여질 업체명 또는 담당자명을 입력해주세요.</p>
               <input style={inputStyle} value={form.contractorName} onChange={(e) => update('contractorName', e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>연락처</label>
+              <p style={helpStyle}>입찰 후 일정 조율이 가능한 연락처를 입력해주세요.</p>
               <input style={inputStyle} value={form.contractorContact} onChange={(e) => update('contractorContact', e.target.value)} />
             </div>
             <div>
               <label style={labelStyle}>견적 금액</label>
+              <p style={helpStyle}>
+                사진과 요청 조건만 보고 가능한 금액을 숫자로 입력해주세요. 현장 확인 후 변동
+                가능하면 아래 추가비 조건에서 선택하면 됩니다.
+              </p>
               <input
                 style={inputStyle}
                 value={form.bidAmount}
@@ -301,57 +389,61 @@ export default function ContractorRequestDetailPage() {
             </div>
             <div>
               <label style={labelStyle}>작업 범위</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: '86px', resize: 'vertical' }}
+              <p style={helpStyle}>
+                파손 범위와 동일 자재 여부를 보고 부분 복구가 가능한지 먼저 선택해주세요.
+              </p>
+              {renderChoiceGroup('workScope', workScopeOptions)}
+              <input
+                style={{ ...inputStyle, marginTop: '8px' }}
                 value={form.workScope}
                 onChange={(e) => update('workScope', e.target.value)}
-                placeholder="예: 훼손된 벽 하단 부분 도배, 자재 색상 차이 가능성 안내"
+                placeholder="필요하면 작업 범위를 짧게 수정"
               />
             </div>
             <div>
               <label style={labelStyle}>포함 항목</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-                value={form.includedItems}
-                onChange={(e) => update('includedItems', e.target.value)}
-                placeholder="예: 자재, 기본 시공, 폐기물 정리"
-              />
+              <p style={helpStyle}>견적 금액에 포함되는 항목을 선택해주세요. 여러 개 선택할 수 있습니다.</p>
+              {renderChoiceGroup('includedItems', includedItemOptions, true)}
             </div>
             <div>
               <label style={labelStyle}>불포함 / 추가비 조건</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-                value={form.extraCostConditions}
-                onChange={(e) => update('extraCostConditions', e.target.value)}
-                placeholder="예: 가구 이동, 추가 훼손 발견, 전체 시공 전환 시 비용 변동"
+              <p style={helpStyle}>
+                현장에서 금액이 달라질 수 있는 조건을 선택해주세요. 고객이 비교할 때 가장
+                중요하게 보는 항목입니다.
+              </p>
+              {renderChoiceGroup('extraCostConditions', extraCostOptions, true)}
+              <input
+                style={{ ...inputStyle, marginTop: '8px' }}
+                value={form.excludedItems}
+                onChange={(e) => update('excludedItems', e.target.value)}
+                placeholder="불포함 항목이 있으면 짧게 입력"
               />
             </div>
             <div>
               <label style={labelStyle}>작업 가능 일정</label>
+              <p style={helpStyle}>고객의 희망 일정과 비교해 가능한 일정대를 선택해주세요.</p>
+              {renderChoiceGroup('availableDate', scheduleOptions)}
               <input
-                style={inputStyle}
+                style={{ ...inputStyle, marginTop: '8px' }}
                 value={form.availableDate}
                 onChange={(e) => update('availableDate', e.target.value)}
-                placeholder="예: 5월 12일 오후 가능"
+                placeholder="정확한 날짜가 있으면 입력"
               />
             </div>
             <div>
               <label style={labelStyle}>방문 필요 여부</label>
-              <select style={inputStyle} value={form.visitRequired} onChange={(e) => update('visitRequired', e.target.value)}>
-                <option value="">선택해주세요</option>
-                <option value="사진 견적 가능">사진 견적 가능</option>
-                <option value="방문 확인 필요">방문 확인 필요</option>
-                <option value="상황에 따라 협의">상황에 따라 협의</option>
-              </select>
+              <p style={helpStyle}>
+                사진 수, 파손 범위, 자재 여부만으로 견적 확정이 가능한지 선택해주세요.
+              </p>
+              {renderChoiceGroup('visitRequired', visitOptions)}
             </div>
             <div>
               <label style={labelStyle}>예상 범위보다 높은 경우 사유</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-                value={form.aboveRangeReason}
-                onChange={(e) => update('aboveRangeReason', e.target.value)}
-                placeholder="예: 자재 수급 필요, 기존 장판 상태 불량 등"
-              />
+              <p style={helpStyle}>
+                펫룸 예상 범위보다 높게 입력했다면 이유를 선택해주세요. 해당 없으면
+                해당 없음 버튼을 선택하면 됩니다.
+              </p>
+              {renderChoiceGroup('aboveRangeReason', aboveRangeOptions)}
             </div>
           </div>
 
