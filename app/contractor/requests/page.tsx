@@ -5,11 +5,55 @@ import { useEffect, useState } from 'react';
 import type { RequestRecord } from '@/lib/petroom-data';
 
 const formatWon = (value: number) => `${value.toLocaleString('ko-KR')}원`;
+const bidWindowMs = 1000 * 60 * 60 * 24;
+
+const getCreatedTime = (request: RequestRecord) => {
+  const time = new Date(request.created_at).getTime();
+
+  return Number.isFinite(time) ? time : 0;
+};
+
+const formatRequestDate = (value: string) => {
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return '요청일시 확인 필요';
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+};
+
+const formatRemainingTime = (createdAt: string, now: number) => {
+  const createdTime = new Date(createdAt).getTime();
+
+  if (!Number.isFinite(createdTime)) {
+    return '시간 확인 필요';
+  }
+
+  const remainingMs = createdTime + bidWindowMs - now;
+
+  if (remainingMs <= 0) {
+    return '마감';
+  }
+
+  const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+
+  return `${hours}시간 ${minutes}분 ${seconds.toString().padStart(2, '0')}초`;
+};
 
 export default function ContractorRequestsPage() {
   const [requests, setRequests] = useState<RequestRecord[]>([]);
   const [source, setSource] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -27,6 +71,16 @@ export default function ContractorRequestsPage() {
       setIsLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const orderedRequests = [...requests].sort((a, b) => getCreatedTime(a) - getCreatedTime(b));
 
   const card = {
     background: '#fff',
@@ -81,7 +135,7 @@ export default function ContractorRequestsPage() {
             </div>
           )}
 
-          {requests.map((request) => (
+          {orderedRequests.map((request, index) => (
             <Link
               key={request.request_id}
               href={`/contractor/requests/${request.request_id}`}
@@ -97,17 +151,51 @@ export default function ContractorRequestsPage() {
                     marginBottom: '12px',
                   }}
                 >
-                  <div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <strong
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '999px',
+                        background: '#e0f2fe',
+                        color: '#1a4a5e',
+                        fontSize: '15px',
+                        flex: '0 0 auto',
+                      }}
+                    >
+                      {index + 1}
+                    </strong>
+                    <div>
                     <p style={{ margin: '0 0 6px', color: '#16a34a', fontSize: '12px', fontWeight: 800 }}>
                       {request.status || '입찰대기'}
                     </p>
                     <h2 style={{ margin: 0, color: '#0f172a', fontSize: '19px', lineHeight: 1.35 }}>
                       {request.region} · {request.damage_type}
                     </h2>
+                    <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.5 }}>
+                      요청일자: {formatRequestDate(request.created_at)}
+                    </p>
+                    </div>
                   </div>
-                  <strong style={{ color: '#1a4a5e', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                    상세 보기
-                  </strong>
+                  <div style={{ textAlign: 'right' }}>
+                    <strong style={{ color: '#1a4a5e', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                      상세 보기
+                    </strong>
+                    <p
+                      style={{
+                        margin: '8px 0 0',
+                        color: '#dc2626',
+                        fontSize: '12px',
+                        fontWeight: 900,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      입찰 마감까지 {formatRemainingTime(request.created_at, now)}
+                    </p>
+                  </div>
                 </div>
 
                 <div
