@@ -6,6 +6,19 @@ import type { BidRecord, RequestRecord } from '@/lib/petroom-data';
 
 const formatWon = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 const bidWindowMs = 1000 * 60 * 60 * 24;
+const normalizePhone = (value: string) => value.replace(/\D/g, '');
+
+const isValidContractorName = (value: string) => {
+  const trimmed = value.trim();
+
+  return trimmed.length >= 2 && /[A-Za-z가-힣]/.test(trimmed);
+};
+
+const isValidContractorContact = (value: string) => {
+  const digits = normalizePhone(value);
+
+  return digits.length >= 9 && digits.length <= 11;
+};
 
 const getCreatedTime = (request: RequestRecord) => {
   const time = new Date(request.created_at).getTime();
@@ -62,6 +75,17 @@ export default function ContractorRequestsPage() {
   const [contractorContact, setContractorContact] = useState(() =>
     typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
   );
+  const [isContractorVerified, setIsContractorVerified] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const savedName = window.localStorage.getItem('petroom_contractor_name') ?? '';
+    const savedContact = window.localStorage.getItem('petroom_contractor_contact') ?? '';
+
+    return isValidContractorName(savedName) && isValidContractorContact(savedContact);
+  });
+  const [accessError, setAccessError] = useState('');
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -101,16 +125,28 @@ export default function ContractorRequestsPage() {
   const completedRequestIds = new Set(myBids.map((bid) => bid.request_id));
   const pendingRequests = orderedRequests.filter((request) => !completedRequestIds.has(request.request_id));
   const completedRequests = orderedRequests.filter((request) => completedRequestIds.has(request.request_id));
-  const hasContractorAccess = Boolean(contractorName.trim() && contractorContact.trim());
+  const hasContractorAccess = isContractorVerified;
 
   const saveContractorAccess = () => {
-    if (!contractorName.trim() || !contractorContact.trim()) {
-      alert('업체명과 연락처를 입력해주세요.');
+    const trimmedName = contractorName.trim();
+    const normalizedContact = normalizePhone(contractorContact);
+
+    if (!isValidContractorName(trimmedName)) {
+      setAccessError('업체명은 2글자 이상으로 입력해주세요. 숫자만 입력할 수 없습니다.');
       return;
     }
 
-    window.localStorage.setItem('petroom_contractor_name', contractorName.trim());
-    window.localStorage.setItem('petroom_contractor_contact', contractorContact.trim());
+    if (!isValidContractorContact(contractorContact)) {
+      setAccessError('연락처는 숫자 기준 9~11자리로 입력해주세요.');
+      return;
+    }
+
+    window.localStorage.setItem('petroom_contractor_name', trimmedName);
+    window.localStorage.setItem('petroom_contractor_contact', normalizedContact);
+    setContractorName(trimmedName);
+    setContractorContact(normalizedContact);
+    setAccessError('');
+    setIsContractorVerified(true);
   };
 
   const card = {
@@ -172,8 +208,11 @@ export default function ContractorRequestsPage() {
               <div style={{ display: 'grid', gap: '10px' }}>
                 <input
                   value={contractorName}
-                  onChange={(event) => setContractorName(event.target.value)}
-                  placeholder="업체명 또는 담당자명"
+                  onChange={(event) => {
+                    setContractorName(event.target.value);
+                    setAccessError('');
+                  }}
+                  placeholder="업체명 예: 수내 인테리어"
                   style={{
                     width: '100%',
                     padding: '14px',
@@ -184,8 +223,12 @@ export default function ContractorRequestsPage() {
                 />
                 <input
                   value={contractorContact}
-                  onChange={(event) => setContractorContact(event.target.value)}
-                  placeholder="업체 연락처"
+                  onChange={(event) => {
+                    setContractorContact(event.target.value);
+                    setAccessError('');
+                  }}
+                  placeholder="업체 연락처 예: 01012345678"
+                  inputMode="numeric"
                   style={{
                     width: '100%',
                     padding: '14px',
@@ -194,6 +237,11 @@ export default function ContractorRequestsPage() {
                     fontSize: '14px',
                   }}
                 />
+                {accessError && (
+                  <p style={{ margin: 0, color: '#dc2626', fontSize: '13px', fontWeight: 800 }}>
+                    {accessError}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={saveContractorAccess}
