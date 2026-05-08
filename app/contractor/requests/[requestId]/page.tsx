@@ -75,13 +75,23 @@ export default function ContractorRequestDetailPage() {
   const [request, setRequest] = useState<RequestRecord | null>(null);
   const [bids, setBids] = useState<BidRecord[]>([]);
   const [source, setSource] = useState('');
-  const [form, setForm] = useState<BidForm>(emptyBidForm);
+  const [contractorContact, setContractorContact] = useState(() =>
+    typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
+  );
+  const [form, setForm] = useState<BidForm>(() => ({
+    ...emptyBidForm,
+    contractorName: typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_name') ?? '',
+    contractorContact: typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
+  }));
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const mainColor = '#1a4a5e';
   const highlight = '#16a34a';
   const photoUrls = request ? parsePhotoUrls(request.photo_urls) : [];
+  const myBids = contractorContact
+    ? bids.filter((bid) => bid.contractor_contact === contractorContact)
+    : [];
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -183,8 +193,32 @@ export default function ContractorRequestDetailPage() {
 
     window.localStorage.setItem('petroom_contractor_name', form.contractorName.trim());
     window.localStorage.setItem('petroom_contractor_contact', form.contractorContact.trim());
+    setContractorContact(form.contractorContact.trim());
     setMessage(`견적이 제출되었습니다. 견적 ID: ${result.bidId}`);
-    setForm(emptyBidForm);
+    setBids((prev) => [
+      {
+        bid_id: result.bidId,
+        request_id: requestId,
+        submitted_at: new Date().toISOString(),
+        contractor_name: form.contractorName.trim(),
+        contractor_contact: form.contractorContact.trim(),
+        bid_amount: form.bidAmount.trim(),
+        work_scope: form.workScope.trim(),
+        included_items: form.includedItems,
+        excluded_items: form.excludedItems,
+        extra_cost_conditions: form.extraCostConditions,
+        available_date: form.availableDate,
+        visit_required: form.visitRequired,
+        above_range_reason: form.aboveRangeReason,
+        bid_status: '제출',
+      },
+      ...prev,
+    ]);
+    setForm((prev) => ({
+      ...emptyBidForm,
+      contractorName: prev.contractorName,
+      contractorContact: prev.contractorContact,
+    }));
   };
 
   const card = {
@@ -400,12 +434,19 @@ export default function ContractorRequestDetailPage() {
         </section>
 
         <section style={{ ...card, marginBottom: '14px' }}>
-          <h2 style={{ margin: '0 0 12px', color: mainColor, fontSize: '17px' }}>도착한 업체 견적</h2>
-          {bids.length === 0 ? (
-            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>아직 제출된 견적이 없습니다.</p>
+          <h2 style={{ margin: '0 0 8px', color: mainColor, fontSize: '17px' }}>내 제출 견적</h2>
+          <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '13px', lineHeight: 1.6 }}>
+            공급자 보호를 위해 다른 업체의 견적 금액과 조건은 공개하지 않습니다.
+          </p>
+          {!contractorContact ? (
+            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+              견적 제출 시 입력한 업체 연락처를 기준으로 내 견적만 표시됩니다.
+            </p>
+          ) : myBids.length === 0 ? (
+            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>아직 제출한 견적이 없습니다.</p>
           ) : (
             <div style={{ display: 'grid', gap: '10px' }}>
-              {bids.map((bid) => (
+              {myBids.map((bid) => (
                 <article key={bid.bid_id} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
                   <strong style={{ color: mainColor }}>{bid.contractor_name}</strong>
                   <p style={{ margin: '6px 0', color: highlight, fontSize: '18px', fontWeight: 900 }}>

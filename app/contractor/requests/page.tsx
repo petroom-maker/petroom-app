@@ -56,7 +56,10 @@ export default function ContractorRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
-  const [contractorContact] = useState(() =>
+  const [contractorName, setContractorName] = useState(() =>
+    typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_name') ?? '',
+  );
+  const [contractorContact, setContractorContact] = useState(() =>
     typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
   );
 
@@ -94,10 +97,21 @@ export default function ContractorRequestsPage() {
   const orderedRequests = [...requests].sort((a, b) => getCreatedTime(a) - getCreatedTime(b));
   const myBids = contractorContact
     ? bids.filter((bid) => bid.contractor_contact === contractorContact)
-    : bids;
+    : [];
   const completedRequestIds = new Set(myBids.map((bid) => bid.request_id));
   const pendingRequests = orderedRequests.filter((request) => !completedRequestIds.has(request.request_id));
   const completedRequests = orderedRequests.filter((request) => completedRequestIds.has(request.request_id));
+  const hasContractorAccess = Boolean(contractorName.trim() && contractorContact.trim());
+
+  const saveContractorAccess = () => {
+    if (!contractorName.trim() || !contractorContact.trim()) {
+      alert('업체명과 연락처를 입력해주세요.');
+      return;
+    }
+
+    window.localStorage.setItem('petroom_contractor_name', contractorName.trim());
+    window.localStorage.setItem('petroom_contractor_contact', contractorContact.trim());
+  };
 
   const card = {
     background: '#fff',
@@ -146,13 +160,67 @@ export default function ContractorRequestsPage() {
             <div style={{ ...card, color: '#64748b', fontSize: '14px' }}>요청서를 불러오는 중입니다.</div>
           )}
 
+          {!isLoading && !hasContractorAccess && (
+            <section style={card}>
+              <h2 style={{ margin: '0 0 8px', color: '#1a4a5e', fontSize: '18px' }}>
+                업체 확인 후 요청함 열기
+              </h2>
+              <p style={{ margin: '0 0 14px', color: '#64748b', fontSize: '13px', lineHeight: 1.6 }}>
+                업체별 입찰 내역을 분리하기 위해 업체명과 연락처를 먼저 확인합니다. 다른 업체의
+                견적은 공개되지 않습니다.
+              </p>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <input
+                  value={contractorName}
+                  onChange={(event) => setContractorName(event.target.value)}
+                  placeholder="업체명 또는 담당자명"
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: '1px solid #dbe3ea',
+                    fontSize: '14px',
+                  }}
+                />
+                <input
+                  value={contractorContact}
+                  onChange={(event) => setContractorContact(event.target.value)}
+                  placeholder="업체 연락처"
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: '1px solid #dbe3ea',
+                    fontSize: '14px',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={saveContractorAccess}
+                  style={{
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    background: '#1a4a5e',
+                    color: '#fff',
+                    fontSize: '15px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  내 업체 요청함 열기
+                </button>
+              </div>
+            </section>
+          )}
+
           {!isLoading && requests.length === 0 && (
             <div style={{ ...card, color: '#64748b', fontSize: '14px' }}>
               아직 입찰 가능한 요청서가 없습니다.
             </div>
           )}
 
-          {!isLoading && requests.length > 0 && (
+          {!isLoading && hasContractorAccess && requests.length > 0 && (
             <>
               <div
                 style={{
