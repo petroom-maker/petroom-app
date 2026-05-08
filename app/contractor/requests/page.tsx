@@ -55,6 +55,7 @@ export default function ContractorRequestsPage() {
   const [source, setSource] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [contractorContact] = useState(() =>
     typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
   );
@@ -153,7 +154,48 @@ export default function ContractorRequestsPage() {
 
           {!isLoading && requests.length > 0 && (
             <>
-              <div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  padding: '6px',
+                  border: '1px solid #dbe3ea',
+                  borderRadius: '14px',
+                  background: '#eef4f8',
+                }}
+              >
+                {[
+                  { key: 'pending' as const, label: '입찰대기 건', count: pendingRequests.length },
+                  { key: 'completed' as const, label: '입찰완료 건', count: completedRequests.length },
+                ].map((tab) => {
+                  const active = activeTab === tab.key;
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab.key)}
+                      style={{
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px 10px',
+                        background: active ? '#fff' : 'transparent',
+                        color: active ? '#1a4a5e' : '#64748b',
+                        fontSize: '14px',
+                        fontWeight: 900,
+                        boxShadow: active ? '0 8px 18px rgba(15, 23, 42, 0.08)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tab.label} <span style={{ color: active ? '#16a34a' : '#94a3b8' }}>{tab.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeTab === 'pending' && (
+                <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <h2 style={{ margin: 0, color: '#1a4a5e', fontSize: '18px' }}>입찰대기 건</h2>
                   <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 800 }}>{pendingRequests.length}건</span>
@@ -252,8 +294,10 @@ export default function ContractorRequestsPage() {
                   )}
                 </div>
               </div>
+              )}
 
-              <div>
+              {activeTab === 'completed' && (
+                <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '4px 0 10px' }}>
                   <h2 style={{ margin: 0, color: '#1a4a5e', fontSize: '18px' }}>입찰완료 건</h2>
                   <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 800 }}>{completedRequests.length}건</span>
@@ -339,6 +383,7 @@ export default function ContractorRequestsPage() {
                   )}
                 </div>
               </div>
+              )}
             </>
           )}
         </section>
