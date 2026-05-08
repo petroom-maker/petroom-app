@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { RequestRecord } from '@/lib/petroom-data';
+import type { BidRecord, RequestRecord } from '@/lib/petroom-data';
 
 const formatWon = (value: number) => `${value.toLocaleString('ko-KR')}원`;
 const bidWindowMs = 1000 * 60 * 60 * 24;
@@ -51,22 +51,32 @@ const formatRemainingTime = (createdAt: string, now: number) => {
 
 export default function ContractorRequestsPage() {
   const [requests, setRequests] = useState<RequestRecord[]>([]);
+  const [bids, setBids] = useState<BidRecord[]>([]);
   const [source, setSource] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
+  const [contractorContact] = useState(() =>
+    typeof window === 'undefined' ? '' : window.localStorage.getItem('petroom_contractor_contact') ?? '',
+  );
 
   useEffect(() => {
     const loadRequests = async () => {
-      const response = await fetch('/api/requests', { cache: 'no-store' });
-      const result = await response.json();
+      const [requestsResponse, bidsResponse] = await Promise.all([
+        fetch('/api/requests', { cache: 'no-store' }),
+        fetch('/api/bids', { cache: 'no-store' }),
+      ]);
+      const result = await requestsResponse.json();
+      const bidsResult = await bidsResponse.json();
 
       setRequests(result.requests ?? []);
+      setBids(bidsResult.bids ?? []);
       setSource(result.source ?? '');
       setIsLoading(false);
     };
 
     loadRequests().catch(() => {
       setRequests([]);
+      setBids([]);
       setSource('error');
       setIsLoading(false);
     });
@@ -81,6 +91,12 @@ export default function ContractorRequestsPage() {
   }, []);
 
   const orderedRequests = [...requests].sort((a, b) => getCreatedTime(a) - getCreatedTime(b));
+  const myBids = contractorContact
+    ? bids.filter((bid) => bid.contractor_contact === contractorContact)
+    : bids;
+  const completedRequestIds = new Set(myBids.map((bid) => bid.request_id));
+  const pendingRequests = orderedRequests.filter((request) => !completedRequestIds.has(request.request_id));
+  const completedRequests = orderedRequests.filter((request) => completedRequestIds.has(request.request_id));
 
   const card = {
     background: '#fff',
@@ -124,7 +140,7 @@ export default function ContractorRequestsPage() {
           </section>
         )}
 
-        <section style={{ display: 'grid', gap: '12px' }}>
+        <section style={{ display: 'grid', gap: '16px' }}>
           {isLoading && (
             <div style={{ ...card, color: '#64748b', fontSize: '14px' }}>요청서를 불러오는 중입니다.</div>
           )}
@@ -135,13 +151,26 @@ export default function ContractorRequestsPage() {
             </div>
           )}
 
-          {orderedRequests.map((request, index) => (
-            <Link
-              key={request.request_id}
-              href={`/contractor/requests/${request.request_id}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <article style={card}>
+          {!isLoading && requests.length > 0 && (
+            <>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <h2 style={{ margin: 0, color: '#1a4a5e', fontSize: '18px' }}>입찰대기 건</h2>
+                  <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 800 }}>{pendingRequests.length}건</span>
+                </div>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {pendingRequests.length === 0 ? (
+                    <div style={{ ...card, color: '#64748b', fontSize: '14px' }}>
+                      현재 새로 입찰할 요청이 없습니다.
+                    </div>
+                  ) : (
+                    pendingRequests.map((request, index) => (
+                      <Link
+                        key={request.request_id}
+                        href={`/contractor/requests/${request.request_id}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <article style={card}>
                 <div
                   style={{
                     display: 'flex',
@@ -219,7 +248,99 @@ export default function ContractorRequestsPage() {
                 </p>
               </article>
             </Link>
-          ))}
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '4px 0 10px' }}>
+                  <h2 style={{ margin: 0, color: '#1a4a5e', fontSize: '18px' }}>입찰완료 건</h2>
+                  <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 800 }}>{completedRequests.length}건</span>
+                </div>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {completedRequests.length === 0 ? (
+                    <div style={{ ...card, color: '#64748b', fontSize: '14px' }}>
+                      아직 입찰완료로 분류된 요청이 없습니다.
+                    </div>
+                  ) : (
+                    completedRequests.map((request, index) => (
+                      <Link
+                        key={request.request_id}
+                        href={`/contractor/requests/${request.request_id}`}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <article style={{ ...card, borderColor: '#bbf7d0', background: '#f7fef9' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: '12px',
+                              alignItems: 'flex-start',
+                              marginBottom: '12px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                              <strong
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '999px',
+                                  background: '#dcfce7',
+                                  color: '#15803d',
+                                  fontSize: '15px',
+                                  flex: '0 0 auto',
+                                }}
+                              >
+                                {index + 1}
+                              </strong>
+                              <div>
+                                <p style={{ margin: '0 0 6px', color: '#15803d', fontSize: '12px', fontWeight: 900 }}>
+                                  입찰완료
+                                </p>
+                                <h2 style={{ margin: 0, color: '#0f172a', fontSize: '19px', lineHeight: 1.35 }}>
+                                  {request.region} · {request.damage_type}
+                                </h2>
+                                <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: '12px', lineHeight: 1.5 }}>
+                                  요청일자: {formatRequestDate(request.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <strong style={{ color: '#1a4a5e', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                              상세 보기
+                            </strong>
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                              gap: '10px',
+                              color: '#475569',
+                              fontSize: '13px',
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            <span>범위: {request.damage_scope}</span>
+                            <span>공간: {request.room_type || request.area_text}</span>
+                            <span>일정: {request.schedule}</span>
+                            <span>사진: {request.image_count}장</span>
+                          </div>
+
+                          <p style={{ margin: '12px 0 0', color: '#16a34a', fontSize: '18px', fontWeight: 900 }}>
+                            {formatWon(request.estimated_min)} ~ {formatWon(request.estimated_max)}
+                          </p>
+                        </article>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </section>
       </div>
     </main>

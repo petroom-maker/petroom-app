@@ -181,6 +181,8 @@ export default function ContractorRequestDetailPage() {
       return;
     }
 
+    window.localStorage.setItem('petroom_contractor_name', form.contractorName.trim());
+    window.localStorage.setItem('petroom_contractor_contact', form.contractorContact.trim());
     setMessage(`견적이 제출되었습니다. 견적 ID: ${result.bidId}`);
     setForm(emptyBidForm);
   };
