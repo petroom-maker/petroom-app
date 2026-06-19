@@ -46,7 +46,7 @@ export const HomeScreen = ({
     <div className="-mx-5 -mt-4 min-h-[calc(100vh-80px)] bg-white px-5 pb-5 pt-5">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src="/PETROOM_app_icon_256.png" alt="새집다오" className="h-16 w-16 object-contain" />
+          <img src="/petroom-logo-mark.png" alt="새집다오" className="h-20 w-20 object-contain" />
           <span className="text-[22px] font-black tracking-tight text-[#0F172A]">새집다오</span>
         </div>
         <div className="flex items-center gap-4 text-[#0F172A]">
