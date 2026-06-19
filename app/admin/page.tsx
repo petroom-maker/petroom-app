@@ -129,6 +129,7 @@ export default function AdminPage() {
   const [estimateForm, setEstimateForm] = useState(emptyEstimate);
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [togglingBidId, setTogglingBidId] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // 토큰은 URL이 아니라 x-admin-token 헤더로만 전송한다.
   const adminUrl = (path: string) => new URL(path, window.location.origin).toString();
@@ -147,6 +148,25 @@ export default function AdminPage() {
     const result = await response.json();
     if (response.ok && result.ok) {
       setContractors(result.contractors ?? []);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (isLoggingIn) return;
+    if (!adminToken.trim()) {
+      setMessage('관리자 토큰을 입력해주세요.');
+      return;
+    }
+    setIsLoggingIn(true);
+    setMessage('로그인 중입니다...');
+    writeStoredToken(adminToken);
+    try {
+      await Promise.all([loadRequests(adminToken), loadContractors(adminToken)]);
+      setMessage('로그인되었습니다.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '로그인에 실패했습니다.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -355,14 +375,26 @@ export default function AdminPage() {
 
           <div className="grid gap-2">
             <input
+              type="password"
               value={adminToken}
               onChange={(event) => {
                 setAdminToken(event.target.value);
                 writeStoredToken(event.target.value);
               }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleLogin();
+              }}
               placeholder="관리자 토큰"
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-navy outline-none"
             />
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={isLoggingIn}
+              className="rounded-2xl bg-accent px-4 py-3 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {isLoggingIn ? '로그인 중...' : '로그인'}
+            </button>
             <div className="grid grid-cols-2 gap-2">
               <select
                 value={statusFilter}
