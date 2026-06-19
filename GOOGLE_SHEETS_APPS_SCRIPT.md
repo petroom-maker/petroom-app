@@ -159,7 +159,6 @@ function doGet(e) {
 function doPost(e) {
   const payload = JSON.parse(e.postData.contents);
   const sheetName = payload.sheet;
-  const values = payload.values || {};
   const columns = SHEET_COLUMNS[sheetName];
 
   if (!columns) {
@@ -176,6 +175,12 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (payload.action === 'delete') {
+    return handleDelete(sheet, columns, payload.request_id);
+  }
+
+  const values = payload.values || {};
+
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(columns);
   }
@@ -188,6 +193,29 @@ function doPost(e) {
 
   return ContentService
     .createTextOutput(JSON.stringify({ ok: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleDelete(sheet, columns, requestId) {
+  if (!requestId) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, message: 'request_id is required' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const idColumnIndex = columns.indexOf('request_id');
+  const values = sheet.getDataRange().getValues();
+  let deleted = 0;
+
+  for (let row = values.length - 1; row >= 1; row -= 1) {
+    if (String(values[row][idColumnIndex]) === String(requestId)) {
+      sheet.deleteRow(row + 1);
+      deleted += 1;
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, deleted: deleted }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 ```
@@ -216,6 +244,10 @@ function doPost(e) {
 3. 실행 사용자: `나`
 4. 액세스 권한: 초기 테스트는 `모든 사용자`
 5. 배포 후 생성된 Web App URL을 복사
+
+> 코드를 수정한 뒤에는 `배포 > 배포 관리`에서 기존 웹 앱 배포를 `편집(연필 아이콘)` →
+> 버전을 `새 버전`으로 선택 → `배포`를 눌러야 변경 사항이 반영된다. 이렇게 하면
+> 기존 Web App URL이 그대로 유지되어 `GOOGLE_SHEETS_WEBHOOK_URL`을 다시 바꿀 필요가 없다.
 
 ## 4. Vercel 환경변수 등록
 

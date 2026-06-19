@@ -1,26 +1,215 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 
+@theme {
+  --color-navy: #0F172A;
+  --color-navy-mid: #1E293B;
+  --color-navy-light: #334155;
+  --color-blue-lt: #0066FF;
+  --color-blue-pale: #DCEBFF;
+  --color-blue-bg: #EFF6FF;
+  --color-coral: #0066FF;
+  --color-coral-deep: #005BFF;
+  --color-coral-light: #DCEBFF;
+  --color-coral-bg: #EFF6FF;
+  --color-app-bg: #F8FAFC;
+  --color-app-card: #FFFFFF;
+  --color-app-border: #E2E8F0;
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+  --color-text-main: #0F172A;
+  --color-text-sub: #475569;
+  --color-text-hint: #94A3B8;
+  --color-accent: #0066FF;
+  --color-coral-pale: #EFF6FF;
+  --color-warm-border: #E2E8F0;
+  --color-warm-muted: #475569;
+  --color-warm-caption: #94A3B8;
+  --color-brand-navy-light: #EFF6FF;
+
+  --shadow-card: 0 8px 28px rgba(15, 23, 42, 0.06);
+  --shadow-float: 0 14px 36px rgba(15, 23, 42, 0.1);
+  --shadow-cta: 0 10px 22px rgba(0, 102, 255, 0.22);
+
+  --font-sans: 'Noto Sans KR', 'Pretendard', ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background-color: var(--color-app-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-blue-lt);
+  color: #ffffff;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: floatY 3s ease-in-out infinite;
+}
+
+@keyframes spin-cw {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-ring {
+  animation: spin-cw 1.2s linear infinite;
+}
+
+.spin-ring-delay {
+  animation: spin-cw 1.2s linear infinite;
+  animation-delay: -0.4s;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.pr-card,
+.petroom-card {
+  background: #ffffff;
+  border: 1px solid var(--color-app-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.pr-card-inner {
+  padding: 20px;
+}
+
+.pr-cta,
+.petroom-cta {
+  width: 100%;
+  padding: 17px;
+  background: linear-gradient(135deg, #0066FF 0%, #005BFF 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-cta);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pr-cta:hover,
+.petroom-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-float);
+}
+
+.pr-cta:active,
+.petroom-cta:active {
+  transform: scale(0.98);
+}
+
+.pr-cta:disabled,
+.petroom-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.pr-chip {
+  border: 2px solid var(--color-app-border);
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+}
+
+.pr-chip.selected {
+  border-color: var(--color-blue-lt);
+  background: var(--color-blue-bg);
+}
+
+.pr-chip-coral.selected {
+  border-color: var(--color-blue-lt);
+  background: var(--color-blue-bg);
+}
+
+.pr-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-dot,
+  .spin-ring,
+  .spin-ring-delay {
+    animation: none;
+  }
 }

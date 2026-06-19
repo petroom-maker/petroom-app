@@ -1,0 +1,16 @@
+{
+  "scriptId": "1564-BQzgW1kWQJgDXcw4yCXs38H0X-cvh7XhYsiI6t6BL6qKbQkVg2n5",
+  "rootDir": "scripts/apps-script-operating-db",
+  "scriptExtensions": [
+    ".js",
+    ".gs"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "filePushOrder": [],
+  "skipSubdirectories": false
+}

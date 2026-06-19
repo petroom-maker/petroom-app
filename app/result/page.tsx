@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getEstimateRange } from '@/lib/estimate';
 
@@ -27,7 +28,6 @@ const normalizeHousingType = (housingType: string | null) => {
 function ResultContent() {
   const searchParams = useSearchParams();
   const mainColor = '#1a4a5e';
-  const highlight = '#16a34a';
   const requestId = searchParams.get('requestId') ?? '';
   const area = searchParams.get('area') ?? '';
   const areaDisplay = formatAreaDisplay(area);
@@ -57,11 +57,8 @@ function ResultContent() {
     repairIntent,
     imageCount,
   });
-  const trustScore = estimate.confidence;
-  const trustLabel = estimate.confidenceLabel;
   const minPrice = Number(searchParams.get('estimatedMin') ?? estimate.minPrice);
   const maxPrice = Number(searchParams.get('estimatedMax') ?? estimate.maxPrice);
-  const cautionMessage = estimate.cautionMessage;
   const summaryItems = [
     ['파손 유형', damageType],
     ['파손 범위', damageRange],
@@ -76,18 +73,12 @@ function ResultContent() {
     ['지역', location],
     ['사진 수', `${imageCount}장`],
   ].filter(([, value]) => value);
-  const analysisItems = [
-    '부분 시공 가능성이 높습니다',
-    '일부 업체는 전체 시공을 권유할 수 있습니다',
-    '사진 기준 견적을 요청하는 것이 유리합니다',
-    cautionMessage,
-  ].filter((item): item is string => Boolean(item));
-
   const card = {
     background: '#fff',
     padding: '18px',
-    borderRadius: '14px',
-    border: '1px solid #e5e7eb',
+    borderRadius: '22px',
+    border: '1px solid rgba(148, 163, 184, 0.22)',
+    boxShadow: '0 14px 34px rgba(26, 74, 94, 0.08)',
   };
 
   const sectionTitle = {
@@ -98,44 +89,109 @@ function ResultContent() {
   };
 
   return (
-    <main style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        <div
+    <main
+      style={{
+        padding: '18px 16px 28px',
+        background: 'linear-gradient(180deg, #e6f2ef 0%, #f8fbfa 48%, #eef4f3 100%)',
+        minHeight: '100vh',
+      }}
+    >
+      <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+        <header
           style={{
-            textAlign: 'center',
-            marginBottom: '20px',
             display: 'flex',
-            flexDirection: 'column',
+            justifyContent: 'space-between',
             alignItems: 'center',
+            gap: '14px',
+            marginBottom: '16px',
           }}
         >
-          <img
-            src="/logo.png"
-            alt="PET ROOM"
-            style={{ display: 'block', width: '120px', margin: '0 auto 10px' }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img
+              src="/petroom-logo-transparent.png"
+              alt="PET ROOM"
+              style={{
+                display: 'block',
+                width: '54px',
+                height: '54px',
+                objectFit: 'contain',
+              }}
+            />
+            <div>
+              <p style={{ margin: '0 0 3px', color: '#64748b', fontSize: '12px', fontWeight: 800 }}>
+                PET ROOM
+              </p>
+              <h1 style={{ margin: 0, color: mainColor, fontSize: '20px', lineHeight: 1.2 }}>
+                견적 결과
+              </h1>
+            </div>
+          </div>
+          <span
+            style={{
+              padding: '8px 10px',
+              borderRadius: '999px',
+              background: '#e8f6ef',
+              color: '#166534',
+              fontSize: '12px',
+              fontWeight: 900,
+              border: '1px solid #bbf7d0',
+            }}
+          >
+            접수 완료
+          </span>
+        </header>
 
-          <h2 style={{ margin: 0 }}>PET ROOM</h2>
-
-          <p style={{ fontSize: '13px', color: '#64748b' }}>
-            입력 정보를 기반으로 견적 범위를 제공합니다
-          </p>
-        </div>
+        <nav
+          aria-label="앱 메뉴"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '8px',
+            marginBottom: '14px',
+          }}
+        >
+          {[
+            ['홈', '/'],
+            ['견적함', '/?screen=quotes'],
+            ['나눔', '/?screen=market'],
+            ['집찾기', '/?screen=homes'],
+          ].map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              style={{
+                minHeight: '42px',
+                border: '1px solid #e7ddc8',
+                borderRadius: '16px',
+                background: label === '홈' ? '#faf0ca' : '#fffdf7',
+                color: mainColor,
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: '13px',
+                fontWeight: 900,
+                textDecoration: 'none',
+              }}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
 
         <section
           style={{
             ...card,
             marginBottom: '14px',
-            borderColor: '#bbf7d0',
-            background: '#f0fdf4',
+            borderColor: '#1a4a5e',
+            background: mainColor,
+            color: '#fff',
           }}
         >
           <p
             style={{
               margin: '0 0 8px',
-              color: '#166534',
+              color: '#bbf7d0',
               fontSize: '14px',
-              fontWeight: 700,
+              fontWeight: 900,
             }}
           >
             예상 견적 결과
@@ -144,22 +200,22 @@ function ResultContent() {
           <h1
             style={{
               margin: 0,
-              color: mainColor,
-              fontSize: '22px',
+              color: '#fff',
+              fontSize: '24px',
               lineHeight: 1.35,
               letterSpacing: 0,
             }}
           >
-            예상 견적 범위
+            지금 조건에서 예상되는 복구비
           </h1>
 
           <p
             style={{
               margin: '10px 0 0',
-              color: highlight,
-              fontSize: '28px',
+              color: '#bbf7d0',
+              fontSize: '30px',
               lineHeight: 1.25,
-              fontWeight: 800,
+              fontWeight: 900,
               letterSpacing: 0,
             }}
           >
@@ -170,9 +226,9 @@ function ResultContent() {
             <p
               style={{
                 margin: '10px 0 0',
-                color: '#166534',
+                color: '#d9f99d',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 900,
               }}
             >
               요청 ID: {requestId}
@@ -180,49 +236,40 @@ function ResultContent() {
           )}
         </section>
 
-        <section style={{ ...card, marginBottom: '14px' }}>
-          <h2 style={sectionTitle}>견적 범위 산정 근거</h2>
-          <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-            입력하신 파손 유형, 범위, 면적, 자재 여부를 기준으로 예상 금액을 계산했습니다.
-            실제 업체 견적은 사진과 현장 조건에 따라 달라질 수 있습니다.
-          </p>
-          <ul
-            style={{
-              margin: 0,
-              padding: 0,
-              listStyle: 'none',
-              display: 'grid',
-              gap: '10px',
-            }}
-          >
-            {estimate.reasons.map((item) => (
-              <li
-                key={item}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'flex-start',
-                  color: '#334155',
-                  fontSize: '14px',
-                  lineHeight: 1.55,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '999px',
-                    background: highlight,
-                    flex: '0 0 auto',
-                    marginTop: '7px',
-                  }}
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {requestId && (
+          <section style={{ ...card, marginBottom: '14px', borderColor: '#bbf7d0' }}>
+            <p
+              style={{
+                margin: '0 0 8px',
+                color: '#166534',
+                fontSize: '13px',
+                fontWeight: 900,
+              }}
+            >
+              앱에서 바로 확인
+            </p>
+            <h2 style={{ ...sectionTitle, marginBottom: '8px' }}>업체 입찰 대기중</h2>
+            <p style={{ margin: '0 0 14px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
+              업체가 입찰하면 견적 현황에 자동 반영됩니다.
+            </p>
+            <Link
+              href={`/requests/${requestId}`}
+              style={{
+                display: 'block',
+                padding: '15px',
+                borderRadius: '14px',
+                background: mainColor,
+                color: '#fff',
+                fontSize: '15px',
+                fontWeight: 900,
+                textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              실시간 견적 현황 보기
+            </Link>
+          </section>
+        )}
 
         <details style={{ ...card, marginBottom: '14px' }}>
           <summary
@@ -265,151 +312,11 @@ function ResultContent() {
               ))
             ) : (
               <li style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6 }}>
-                전달된 입력 정보가 없습니다.
+            전달된 입력 정보가 없습니다.
               </li>
             )}
           </ul>
         </details>
-
-        <section style={{ ...card, marginBottom: '14px' }}>
-          <h2 style={sectionTitle}>견적 범위 신뢰도</h2>
-
-          <div
-            style={{
-              height: '10px',
-              overflow: 'hidden',
-              borderRadius: '999px',
-              background: '#e5e7eb',
-              marginBottom: '10px',
-            }}
-          >
-            <div
-              style={{
-                width: `${trustScore}%`,
-                height: '100%',
-                borderRadius: '999px',
-                background: highlight,
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              color: '#166534',
-              fontSize: '13px',
-              fontWeight: 700,
-            }}
-          >
-            <span>{trustLabel}</span>
-            <span>{trustScore}%</span>
-          </div>
-        </section>
-
-        <section style={{ ...card, marginBottom: '14px' }}>
-          <h2 style={sectionTitle}>신뢰도 설명</h2>
-          <p style={{ margin: 0, color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-            신뢰도는 사진 수뿐 아니라 면적, 자재 여부, 주거 유형, 일정 등 견적에 필요한
-            정보가 얼마나 구체적인지를 함께 반영합니다.
-          </p>
-          <ul
-            style={{
-              margin: '12px 0 0',
-              padding: 0,
-              listStyle: 'none',
-              display: 'grid',
-              gap: '8px',
-            }}
-          >
-            {estimate.confidenceReasons.map((reason) => (
-              <li
-                key={reason}
-                style={{ color: '#64748b', fontSize: '13px', lineHeight: 1.5 }}
-              >
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section style={card}>
-          <h2 style={sectionTitle}>분석 결과</h2>
-          <ul
-            style={{
-              margin: 0,
-              padding: 0,
-              listStyle: 'none',
-              display: 'grid',
-              gap: '10px',
-            }}
-          >
-            {analysisItems.map((item) => (
-              <li
-                key={item}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'flex-start',
-                  color: '#334155',
-                  fontSize: '14px',
-                  lineHeight: 1.55,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '999px',
-                    background: highlight,
-                    flex: '0 0 auto',
-                    marginTop: '7px',
-                  }}
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {requestId && (
-          <section style={{ ...card, marginTop: '14px', borderColor: '#bbf7d0' }}>
-            <p
-              style={{
-                margin: '0 0 8px',
-                color: '#166534',
-                fontSize: '13px',
-                fontWeight: 800,
-              }}
-            >
-              입찰 요청 완료
-            </p>
-            <h2 style={{ ...sectionTitle, marginBottom: '8px' }}>업체 입찰 대기중</h2>
-            <p style={{ margin: '0 0 14px', color: '#475569', fontSize: '14px', lineHeight: 1.7 }}>
-              입력하신 요청서는 업체가 견적을 낼 수 있는 형태로 정리되었습니다. 업체 입찰이
-              도착하면 견적 금액, 작업 범위, 추가비 조건을 비교해 선택할 수 있습니다.
-            </p>
-            <div
-              style={{
-                display: 'grid',
-                gap: '8px',
-                padding: '12px',
-                borderRadius: '12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                color: '#334155',
-                fontSize: '14px',
-              }}
-            >
-              <strong style={{ color: mainColor }}>다음 단계</strong>
-              <span>1. 업체가 요청서를 확인합니다.</span>
-              <span>2. 업체가 견적 금액과 작업 조건을 제출합니다.</span>
-              <span>3. 도착한 견적을 비교한 뒤 업체를 선택합니다.</span>
-            </div>
-          </section>
-        )}
       </div>
     </main>
   );

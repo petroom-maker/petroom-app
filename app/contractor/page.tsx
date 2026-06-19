@@ -1,290 +1,315 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import type { AssignmentRecord, BidRecord, ContractorRecord, RequestRecord } from '@/lib/petroom-data';
 
-type BidForm = {
-  requestId: string;
-  contractorName: string;
-  contractorContact: string;
-  bidAmount: string;
-  workScope: string;
-  includedItems: string;
-  excludedItems: string;
-  extraCostConditions: string;
-  availableDate: string;
-  visitRequired: string;
-  aboveRangeReason: string;
+type AssignmentWithRequest = AssignmentRecord & {
+  request: RequestRecord | null;
 };
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '10px',
-  border: '1px solid #e5e7eb',
+type Detail = {
+  contractor: ContractorRecord;
+  assignment: AssignmentRecord;
+  request: RequestRecord | null;
+  images: Record<string, unknown>[];
+  estimates: BidRecord[];
 };
 
-function ContractorContent() {
-  const searchParams = useSearchParams();
-  const initialRequestId = searchParams.get('requestId') ?? '';
-  const min = searchParams.get('min');
-  const max = searchParams.get('max');
-  const [form, setForm] = useState<BidForm>({
-    requestId: initialRequestId,
-    contractorName: '',
-    contractorContact: '',
-    bidAmount: '',
-    workScope: '',
-    includedItems: '',
-    excludedItems: '',
-    extraCostConditions: '',
-    availableDate: '',
-    visitRequired: '',
-    aboveRangeReason: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState('');
+const emptyForm = {
+  bidAmount: '',
+  bidAmountDisplay: '',
+  workScope: '',
+  includedItems: '',
+  excludedItems: '',
+  extraCostConditions: '',
+  visitRequired: '사진 견적 가능',
+  availableDate: '',
+  partialRepairAvailable: '',
+  estimatedWorkTime: '',
+  contractorMemo: '',
+};
 
-  const card = {
-    background: '#fff',
-    padding: '18px',
-    borderRadius: '14px',
-    marginBottom: '14px',
-    border: '1px solid #e5e7eb',
-  };
-  const label = {
-    display: 'block',
-    marginBottom: '8px',
-    color: '#1a4a5e',
-    fontSize: '14px',
-    fontWeight: 800,
-  };
+const getImageUrl = (image: Record<string, unknown>) =>
+  String(image.DriveURL || image.drive_url || image['DriveURL'] || image['이미지URL'] || '');
 
-  const update = (field: keyof BidForm, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+const getImageThumbUrl = (image: Record<string, unknown>) =>
+  String(image['썸네일URL'] || image.thumbnail_url || image.thumbnailUrl || getImageUrl(image));
 
-  const submitBid = async () => {
-    if (
-      !form.requestId.trim() ||
-      !form.contractorName.trim() ||
-      !form.contractorContact.trim() ||
-      !form.bidAmount.trim() ||
-      !form.workScope.trim()
-    ) {
-      alert('요청 ID, 업체명, 연락처, 견적 금액, 작업 범위는 필수입니다.');
-      return;
-    }
+const getImageLabel = (image: Record<string, unknown>) =>
+  String(image.image_type || image['이미지구분'] || image.description || '사진');
 
-    setIsSubmitting(true);
-    setMessage('');
+const imageGroups = ['전체공간', '훼손범위', '근접사진', '추가사진'];
 
-    const response = await fetch('/api/bids', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(form),
-    });
-    const result = await response.json();
-
-    setIsSubmitting(false);
-
-    if (!response.ok || !result.ok) {
-      setMessage(result.message ?? '견적 제출 중 문제가 발생했습니다.');
-      return;
-    }
-
-    setMessage(`견적이 제출되었습니다. 견적 ID: ${result.bidId}`);
-  };
-
-  return (
-    <main style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-        <header style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <img
-            src="/logo.png"
-            alt="PET ROOM"
-            style={{ display: 'block', width: '96px', margin: '0 auto 8px' }}
-          />
-          <h1 style={{ margin: 0, color: '#1a4a5e', fontSize: '24px' }}>업체 견적 입력</h1>
-          <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '13px' }}>
-            유저가 입력한 요청서를 기준으로 실제 가능한 견적을 남겨주세요.
-          </p>
-        </header>
-
-        {min && max && (
-          <section
-            style={{
-              ...card,
-              background: '#f0fdf4',
-              borderColor: '#bbf7d0',
-              color: '#166534',
-              fontWeight: 700,
-            }}
-          >
-            펫룸 예상 범위: {Number(min).toLocaleString('ko-KR')}원 ~{' '}
-            {Number(max).toLocaleString('ko-KR')}원
-          </section>
-        )}
-
-        <Link
-          href="/contractor/requests"
-          style={{
-            display: 'block',
-            marginBottom: '14px',
-            padding: '14px',
-            borderRadius: '14px',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            color: '#166534',
-            fontSize: '14px',
-            fontWeight: 900,
-            textAlign: 'center',
-            textDecoration: 'none',
-          }}
-        >
-          업체 요청함에서 입찰할 요청 보기
-        </Link>
-
-        <section style={card}>
-          <label style={label}>요청 ID</label>
-          <input
-            style={inputStyle}
-            value={form.requestId}
-            onChange={(e) => update('requestId', e.target.value)}
-            placeholder="예: req_xxxxx"
-          />
-        </section>
-
-        <section style={card}>
-          <label style={label}>업체 정보</label>
-          <div style={{ display: 'grid', gap: '8px' }}>
-            <input
-              style={inputStyle}
-              value={form.contractorName}
-              onChange={(e) => update('contractorName', e.target.value)}
-              placeholder="업체명 또는 담당자명"
-            />
-            <input
-              style={inputStyle}
-              value={form.contractorContact}
-              onChange={(e) => update('contractorContact', e.target.value)}
-              placeholder="연락처"
-            />
-          </div>
-        </section>
-
-        <section style={card}>
-          <label style={label}>견적 금액</label>
-          <input
-            style={inputStyle}
-            value={form.bidAmount}
-            onChange={(e) => update('bidAmount', e.target.value)}
-            placeholder="예: 240000"
-            inputMode="numeric"
-          />
-        </section>
-
-        <section style={card}>
-          <label style={label}>작업 범위</label>
-          <textarea
-            style={{ ...inputStyle, minHeight: '84px', resize: 'vertical' }}
-            value={form.workScope}
-            onChange={(e) => update('workScope', e.target.value)}
-            placeholder="예: 훼손된 벽 하단 부분 도배, 색상 차이 가능성 안내"
-          />
-        </section>
-
-        <section style={card}>
-          <label style={label}>포함 / 불포함 / 추가비 조건</label>
-          <div style={{ display: 'grid', gap: '8px' }}>
-            <textarea
-              style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-              value={form.includedItems}
-              onChange={(e) => update('includedItems', e.target.value)}
-              placeholder="포함 항목"
-            />
-            <textarea
-              style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-              value={form.excludedItems}
-              onChange={(e) => update('excludedItems', e.target.value)}
-              placeholder="불포함 항목"
-            />
-            <textarea
-              style={{ ...inputStyle, minHeight: '72px', resize: 'vertical' }}
-              value={form.extraCostConditions}
-              onChange={(e) => update('extraCostConditions', e.target.value)}
-              placeholder="추가비 발생 가능 조건"
-            />
-          </div>
-        </section>
-
-        <section style={card}>
-          <label style={label}>일정 / 방문 여부</label>
-          <div style={{ display: 'grid', gap: '8px' }}>
-            <input
-              style={inputStyle}
-              value={form.availableDate}
-              onChange={(e) => update('availableDate', e.target.value)}
-              placeholder="예: 5월 12일 오후 가능"
-            />
-            <select
-              style={inputStyle}
-              value={form.visitRequired}
-              onChange={(e) => update('visitRequired', e.target.value)}
-            >
-              <option value="">방문 필요 여부</option>
-              <option value="사진 견적 가능">사진 견적 가능</option>
-              <option value="방문 확인 필요">방문 확인 필요</option>
-              <option value="상황에 따라 협의">상황에 따라 협의</option>
-            </select>
-          </div>
-        </section>
-
-        <section style={card}>
-          <label style={label}>예상 범위보다 높은 경우 사유</label>
-          <textarea
-            style={{ ...inputStyle, minHeight: '84px', resize: 'vertical' }}
-            value={form.aboveRangeReason}
-            onChange={(e) => update('aboveRangeReason', e.target.value)}
-            placeholder="예: 자재 수급 필요, 전체 시공 필요, 짐 이동 필요 등"
-          />
-        </section>
-
-        <button
-          onClick={submitBid}
-          disabled={isSubmitting}
-          style={{
-            width: '100%',
-            padding: '16px',
-            border: 'none',
-            borderRadius: '14px',
-            background: isSubmitting ? '#94a3b8' : '#1a4a5e',
-            color: '#fff',
-            fontSize: '16px',
-            fontWeight: 800,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {isSubmitting ? '견적 제출 중...' : '견적 제출하기'}
-        </button>
-
-        {message && (
-          <p style={{ color: '#166534', fontSize: '14px', fontWeight: 700, textAlign: 'center' }}>
-            {message}
-          </p>
-        )}
-      </div>
-    </main>
-  );
-}
+const formatWon = (value: string) => {
+  const amount = Number(value.replace(/\D/g, ''));
+  return Number.isFinite(amount) && amount > 0 ? `${amount.toLocaleString('ko-KR')}원` : value || '-';
+};
 
 export default function ContractorPage() {
+  const [contractorId, setContractorId] = useState('');
+  const [token, setToken] = useState('');
+  const [contractor, setContractor] = useState<ContractorRecord | null>(null);
+  const [assignments, setAssignments] = useState<AssignmentWithRequest[]>([]);
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const assignmentUrl = (path: string) => {
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('contractorId', contractorId);
+    url.searchParams.set('token', token);
+    return url.toString();
+  };
+
+  const loadAssignments = async (nextContractorId = contractorId, nextToken = token) => {
+    if (!nextContractorId || !nextToken) {
+      setIsLoading(false);
+      return;
+    }
+    const url = new URL('/api/contractor/assignments', window.location.origin);
+    url.searchParams.set('contractorId', nextContractorId);
+    url.searchParams.set('token', nextToken);
+    const response = await fetch(url.toString(), { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message ?? '배정 목록 조회 실패');
+    setContractor(result.contractor ?? null);
+    setAssignments(result.assignments ?? []);
+  };
+
+  const loadDetail = async (assignmentId: string) => {
+    const response = await fetch(assignmentUrl(`/api/contractor/assignments/${assignmentId}`), { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message ?? '배정 상세 조회 실패');
+    setDetail(result);
+    setForm(emptyForm);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextContractorId = params.get('contractorId') ?? '';
+    const nextToken = params.get('token') ?? '';
+    setContractorId(nextContractorId);
+    setToken(nextToken);
+    loadAssignments(nextContractorId, nextToken)
+      .catch((error) => setMessage(error instanceof Error ? error.message : '업체 화면을 불러오지 못했습니다.'))
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const submitEstimate = async () => {
+    if (!detail?.request || !form.bidAmount.trim()) {
+      setMessage('견적금액을 입력해주세요.');
+      return;
+    }
+
+    const response = await fetch('/api/contractor/estimates', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        ...form,
+        contractorId,
+        token,
+        requestId: detail.request.request_id,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      setMessage(result.message ?? '견적 제출에 실패했습니다.');
+      return;
+    }
+    setMessage('견적이 제출되었습니다. 펫룸 검수 후 고객에게 전달됩니다.');
+    await Promise.all([loadAssignments(), loadDetail(detail.assignment.assignment_id)]);
+  };
+
   return (
-    <Suspense fallback={null}>
-      <ContractorContent />
-    </Suspense>
+    <main className="min-h-screen bg-slate-50 px-4 py-6">
+      <div className="mx-auto grid max-w-[1120px] gap-5 lg:grid-cols-[360px_1fr]">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-extrabold text-accent">PET ROOM CONTRACTOR</p>
+          <h1 className="mt-1 text-2xl font-extrabold text-navy">업체 요청함</h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            배정받은 요청만 표시됩니다. 견적은 제출 후 바로 고객에게 노출되지 않고 펫룸 검수 후 전달됩니다.
+          </p>
+
+          {message && <p className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-xs font-bold text-accent">{message}</p>}
+
+          {!contractorId || !token ? (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-5 text-sm leading-relaxed text-slate-500">
+              업체 전용 링크로 접속해주세요.
+              <br />
+              예: /contractor?contractorId=C-001&token=...
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-extrabold text-slate-400">로그인 업체</p>
+                <p className="mt-1 text-sm font-extrabold text-navy">
+                  {contractor?.contractor_name || contractorId}
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {isLoading && <p className="text-sm font-bold text-slate-400">불러오는 중...</p>}
+                {!isLoading && assignments.length === 0 && (
+                  <p className="rounded-2xl border border-slate-200 p-5 text-sm font-bold text-slate-400">
+                    배정된 요청이 없습니다.
+                  </p>
+                )}
+                {assignments.map((assignment) => (
+                  <button
+                    key={assignment.assignment_id}
+                    type="button"
+                    onClick={() => loadDetail(assignment.assignment_id).catch(() => setMessage('상세 조회 실패'))}
+                    className={`block w-full rounded-2xl border p-4 text-left ${
+                      detail?.assignment.assignment_id === assignment.assignment_id
+                        ? 'border-accent bg-blue-50'
+                        : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <p className="text-xs font-extrabold text-accent">{assignment.assignment_id}</p>
+                    <p className="mt-1 text-sm font-extrabold text-navy">
+                      {assignment.request?.region || '-'} · {assignment.request?.damage_type || '-'}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      희망 {assignment.request?.schedule || '-'} · {assignment.assignment_status} · 제출 {assignment.estimate_submitted}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          {!detail?.request ? (
+            <div className="flex min-h-[520px] items-center justify-center text-center">
+              <p className="text-sm font-bold text-slate-400">배정된 요청을 선택해주세요.</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <header className="border-b border-slate-100 pb-4">
+                <p className="text-xs font-extrabold text-accent">{detail.request.request_id}</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-navy">
+                  {detail.request.region || '-'} · {detail.request.damage_type || '-'}
+                </h2>
+                <p className="mt-2 text-sm font-bold text-slate-500">
+                  고객명과 연락처는 펫룸 검수 전에는 노출하지 않습니다.
+                </p>
+              </header>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {[
+                  ['신청유형', detail.request.damage_scope],
+                  ['행정동/지역', detail.request.region],
+                  ['손상부위', detail.request.damage_type],
+                  ['희망시기', detail.request.schedule],
+                  ['주거유형', detail.request.housing_type],
+                  ['운영공간유형', detail.request.room_type],
+                  ['현재상황', detail.request.damage_scope],
+                  ['추가요청사항', detail.request.user_memo],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-extrabold text-slate-400">{label}</p>
+                    <p className="mt-1 whitespace-pre-line text-sm font-bold leading-relaxed text-navy">{value || '-'}</p>
+                  </div>
+                ))}
+              </div>
+
+              <section>
+                <h3 className="mb-3 text-base font-extrabold text-navy">사진 확인</h3>
+                <div className="space-y-4">
+                  {imageGroups.map((group) => {
+                    const groupImages = detail.images.filter((image) => getImageLabel(image) === group);
+
+                    if (groupImages.length === 0) {
+                      return null;
+                    }
+
+                    return (
+                      <div key={group} className="rounded-2xl bg-slate-50 p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-sm font-extrabold text-navy">{group}</p>
+                          <p className="text-xs font-extrabold text-slate-400">{groupImages.length}장</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                          {groupImages.map((image, index) => {
+                            const url = getImageUrl(image);
+                            const thumbUrl = getImageThumbUrl(image);
+                            return (
+                              <a
+                                key={`${url}-${index}`}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                              >
+                                <img src={thumbUrl} alt={`${group} ${index + 1}`} className="h-28 w-full object-cover" />
+                                <p className="truncate px-2 py-1.5 text-[11px] font-bold text-slate-500">{index + 1}번 사진</p>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {detail.estimates.length > 0 && (
+                <section className="rounded-2xl border border-slate-200 p-4">
+                  <h3 className="mb-2 text-base font-extrabold text-navy">제출한 견적</h3>
+                  <div className="space-y-2">
+                    {detail.estimates.map((estimate) => (
+                      <div key={estimate.bid_id} className="rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-600">
+                        {estimate.bid_id} · {formatWon(estimate.bid_amount)} · {estimate.bid_status} · 고객노출 {estimate.customer_visible ? 'Y' : 'N'}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <h3 className="mb-3 text-base font-extrabold text-navy">견적 제출</h3>
+                <div className="grid gap-2">
+                  {[
+                    ['bidAmount', '견적금액 예: 250000'],
+                    ['bidAmountDisplay', '견적금액표시 예: 25만원'],
+                    ['workScope', '작업범위'],
+                    ['includedItems', '포함항목'],
+                    ['excludedItems', '제외항목'],
+                    ['extraCostConditions', '추가비용조건'],
+                    ['partialRepairAvailable', '부분시공 가능 여부'],
+                    ['estimatedWorkTime', '예상 작업 시간'],
+                    ['availableDate', '가능일정'],
+                    ['contractorMemo', '업체메모'],
+                  ].map(([key, placeholder]) => (
+                    <input
+                      key={key}
+                      value={String(form[key as keyof typeof form])}
+                      onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
+                      placeholder={placeholder}
+                      className="rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-navy"
+                    />
+                  ))}
+                  <select
+                    value={form.visitRequired}
+                    onChange={(event) => setForm((prev) => ({ ...prev, visitRequired: event.target.value }))}
+                    className="rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-navy"
+                  >
+                    <option>사진 견적 가능</option>
+                    <option>방문 확인 필요</option>
+                    <option>상황에 따라 협의</option>
+                  </select>
+                  <button type="button" onClick={submitEstimate} className="rounded-2xl bg-accent px-4 py-3 text-sm font-extrabold text-white">
+                    견적 제출하기
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
