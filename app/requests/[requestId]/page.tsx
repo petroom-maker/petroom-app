@@ -266,15 +266,7 @@ export default function CustomerRequestPage() {
 
         <section className="rounded-[20px] border border-[#E2E8F0] bg-white p-5 shadow-sm">
           <h2 className="text-[17px] font-black text-[#0F172A]">견적 요약</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-[16px] bg-[#EFF6FF] p-4">
-              <p className="text-[11px] font-bold text-[#64748B]">예상 견적 범위</p>
-              <p className="mt-1 text-[18px] font-black text-[#0066FF]">
-                {request.estimated_min > 0 && request.estimated_max > 0
-                  ? `${Math.round(request.estimated_min / 10000)}만~${Math.round(request.estimated_max / 10000)}만원`
-                  : '확인 중'}
-              </p>
-            </div>
+          <div className="mt-4">
             <div className="rounded-[16px] bg-[#EFF6FF] p-4">
               <p className="text-[11px] font-bold text-[#64748B]">확인된 견적</p>
               <p className="mt-1 text-[18px] font-black text-[#0066FF]">{orderedBids.length}건</p>
