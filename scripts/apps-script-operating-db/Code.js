@@ -254,6 +254,10 @@ function doPost(e) {
       return json_(deleteByRequestId_(alias, payload.request_id || payload.requestId));
     }
 
+    if (payload.action === 'delete_by_id') {
+      return json_(deleteRowById_(alias, payload.id || payload.bidId || payload.assignmentId || payload.request_id || payload.requestId));
+    }
+
     if (payload.action === 'update') {
       return json_(updateRowById_(alias, payload.id || payload.request_id || payload.requestId || payload.bidId || payload.assignmentId, payload.values || {}));
     }
@@ -833,6 +837,41 @@ function deleteByRequestId_(alias, requestId) {
   return {
     ok: true,
     deleted: deleted,
+  };
+}
+
+function deleteRowById_(alias, id) {
+  if (!id) {
+    throw new Error('삭제할 ID가 없습니다.');
+  }
+
+  const sheet = getSheet_(alias);
+  ensureHeader_(sheet, HEADERS[alias]);
+  const headers = getHeaders_(sheet);
+  const idColumn = findIdColumn_(alias, headers);
+
+  if (idColumn < 0) {
+    throw new Error('ID 컬럼을 찾지 못했습니다: ' + alias);
+  }
+
+  for (let row = sheet.getLastRow(); row >= 2; row -= 1) {
+    if (String(sheet.getRange(row, idColumn + 1).getValue()) === String(id)) {
+      sheet.deleteRow(row);
+      return {
+        ok: true,
+        sheet: alias,
+        id: id,
+        deleted: 1,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    sheet: alias,
+    id: id,
+    deleted: 0,
+    message: '삭제할 행을 찾지 못했습니다.',
   };
 }
 

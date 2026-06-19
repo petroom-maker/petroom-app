@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthorized, unauthorized } from '@/lib/petroom-access';
-import { updateGoogleSheetRow } from '@/lib/sheets';
+import { deleteGoogleSheetRowById, updateGoogleSheetRow } from '@/lib/sheets';
 
 type RouteContext = {
   params: Promise<{
@@ -75,5 +75,33 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   } catch (error) {
     console.error(error);
     return NextResponse.json({ ok: false, message: '견적 수정에 실패했습니다.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  if (!isAdminAuthorized(request)) {
+    return unauthorized();
+  }
+
+  const { estimateId } = await context.params;
+
+  if (!estimateId) {
+    return NextResponse.json({ ok: false, message: '삭제할 견적 ID가 없습니다.' }, { status: 400 });
+  }
+
+  try {
+    const result = await deleteGoogleSheetRowById({ sheet: 'bids', id: estimateId });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, message: result.reason ?? '견적을 삭제하지 못했습니다.' },
+        { status: result.skipped ? 503 : 500 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, result });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ ok: false, message: '견적 삭제에 실패했습니다.' }, { status: 500 });
   }
 }

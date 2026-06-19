@@ -132,6 +132,7 @@ export default function AdminPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [deletingBidId, setDeletingBidId] = useState('');
 
   // 토큰은 비-ASCII 문자가 포함될 수 있어 헤더 대신 쿼리 파라미터로 보낸다.
   // (URL API의 searchParams가 자동으로 인코딩하고, 서버에서는 자동으로 디코딩된다.)
@@ -367,6 +368,32 @@ export default function AdminPage() {
     }
     setMessage('고객 노출 정보를 수정했습니다.');
     await loadDetail(detail.request.request_id);
+  };
+
+  const deleteEstimate = async (bid: BidRecord) => {
+    if (deletingBidId || !detail) return;
+    const confirmed = window.confirm(
+      `이 견적을 삭제하시겠습니까?\n\n${bid.bid_id} · ${formatWon(getAmount(bid))}\n삭제하면 복구할 수 없습니다.`,
+    );
+    if (!confirmed) return;
+    setDeletingBidId(bid.bid_id);
+    setMessage('견적을 삭제하는 중입니다...');
+    try {
+      const response = await fetch(adminUrl(`/api/admin/estimates/${encodeURIComponent(bid.bid_id)}`), {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        setMessage(result.message ?? '견적 삭제에 실패했습니다.');
+        return;
+      }
+      setMessage('견적을 삭제했습니다.');
+      await loadDetail(detail.request.request_id);
+    } catch {
+      setMessage('견적 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingBidId('');
+    }
   };
 
   const customerResultUrl = detail
@@ -772,6 +799,14 @@ export default function AdminPage() {
                           className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-extrabold text-slate-600"
                         >
                           고객 코멘트 입력
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteEstimate(bid)}
+                          disabled={deletingBidId === bid.bid_id}
+                          className="ml-auto rounded-xl bg-rose-600 px-3 py-2 text-xs font-extrabold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                          {deletingBidId === bid.bid_id ? '삭제 중...' : '삭제'}
                         </button>
                       </div>
                       <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
