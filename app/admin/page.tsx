@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getStatusLabel,
   type AssignmentRecord,
@@ -130,24 +130,27 @@ export default function AdminPage() {
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [togglingBidId, setTogglingBidId] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
-  // 토큰은 URL이 아니라 x-admin-token 헤더로만 전송한다.
-  const adminUrl = (path: string) => new URL(path, window.location.origin).toString();
-
-  // 비-ASCII 토큰도 HTTP 헤더로 안전하게 보내기 위해 인코딩한다(서버에서 디코딩).
-  const encodeToken = (token: string) => encodeURIComponent(token);
-
-  const headers = useMemo(() => ({ 'x-admin-token': encodeToken(adminToken) }), [adminToken]);
+  // 토큰은 비-ASCII 문자가 포함될 수 있어 헤더 대신 쿼리 파라미터로 보낸다.
+  // (URL API의 searchParams가 자동으로 인코딩하고, 서버에서는 자동으로 디코딩된다.)
+  const buildUrl = (path: string, token = adminToken) => {
+    const url = new URL(path, window.location.origin);
+    if (token) url.searchParams.set('adminToken', token);
+    return url.toString();
+  };
+  const adminUrl = (path: string) => buildUrl(path);
 
   const loadRequests = async (token = adminToken) => {
-    const response = await fetch('/api/admin/requests', { cache: 'no-store', headers: { 'x-admin-token': encodeToken(token) } });
+    const response = await fetch(buildUrl('/api/admin/requests', token), { cache: 'no-store' });
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.message ?? '목록 조회 실패');
     setRequests(result.requests ?? []);
   };
 
   const loadContractors = async (token = adminToken) => {
-    const response = await fetch('/api/admin/contractors', { cache: 'no-store', headers: { 'x-admin-token': encodeToken(token) } });
+    const response = await fetch(buildUrl('/api/admin/contractors', token), { cache: 'no-store' });
     const result = await response.json();
     if (response.ok && result.ok) {
       setContractors(result.contractors ?? []);
@@ -174,16 +177,25 @@ export default function AdminPage() {
   };
 
   const loadDetail = async (requestId: string) => {
-    const response = await fetch(adminUrl(`/api/admin/requests/${encodeURIComponent(requestId)}`), {
-      cache: 'no-store',
-      headers,
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) throw new Error(result.message ?? '상세 조회 실패');
-    setDetail(result);
+    // 카드를 누르면 즉시 선택 표시 + 로딩 표시.
     setSelectedId(requestId);
-    setAssignmentForm({ contractorId: contractors[0]?.contractor_id ?? '', requestMemo: '' });
-    setEstimateForm({ ...emptyEstimate, customerDisplayName: `업체 ${(result.estimates?.length ?? 0) + 1}` });
+    setIsDetailLoading(true);
+    setDetailError('');
+    try {
+      const response = await fetch(adminUrl(`/api/admin/requests/${encodeURIComponent(requestId)}`), {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.message ?? '상세 조회 실패');
+      setDetail(result);
+      setAssignmentForm({ contractorId: contractors[0]?.contractor_id ?? '', requestMemo: '' });
+      setEstimateForm({ ...emptyEstimate, customerDisplayName: `업체 ${(result.estimates?.length ?? 0) + 1}` });
+    } catch {
+      setDetail(null);
+      setDetailError('불러오기 실패. 다시 시도해주세요');
+    } finally {
+      setIsDetailLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -218,7 +230,7 @@ export default function AdminPage() {
     if (!detail) return;
     const response = await fetch(adminUrl(`/api/admin/requests/${detail.request.request_id}/status`), {
       method: 'PATCH',
-      headers: { ...headers, 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ status }),
     });
     const result = await response.json();
@@ -246,7 +258,7 @@ export default function AdminPage() {
     const now = new Date().toISOString();
     const response = await fetch(adminUrl(`/api/admin/requests/${detail.request.request_id}/status`), {
       method: 'PATCH',
-      headers: { ...headers, 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         status: 'RESULT_SENT',
         resultNoticeStatus: '안내완료',
@@ -267,7 +279,7 @@ export default function AdminPage() {
     if (!detail || !assignmentForm.contractorId.trim()) return;
     const response = await fetch(adminUrl('/api/admin/assignments'), {
       method: 'POST',
-      headers: { ...headers, 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         requestId: detail.request.request_id,
         contractorId: assignmentForm.contractorId,
@@ -294,7 +306,7 @@ export default function AdminPage() {
     try {
       const response = await fetch(adminUrl('/api/admin/estimates'), {
         method: 'POST',
-        headers: { ...headers, 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...estimateForm, requestId: detail.request.request_id }),
       });
       const result = await response.json();
@@ -319,7 +331,7 @@ export default function AdminPage() {
     try {
       const response = await fetch(adminUrl(`/api/admin/estimates/${encodeURIComponent(bid.bid_id)}`), {
         method: 'PATCH',
-        headers: { ...headers, 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           customerVisible: nextVisible,
           bidStatus: nextVisible === 'Y' ? '고객노출승인' : '검수대기',
@@ -345,7 +357,7 @@ export default function AdminPage() {
     if (!detail) return;
     const response = await fetch(adminUrl(`/api/admin/estimates/${encodeURIComponent(bid.bid_id)}`), {
       method: 'PATCH',
-      headers: { ...headers, 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ ...changes, requestId: detail.request.request_id }),
     });
     const result = await response.json();
@@ -427,9 +439,11 @@ export default function AdminPage() {
                 <button
                   key={item.request_id}
                   type="button"
-                  onClick={() => loadDetail(item.request_id).catch(() => setMessage('상세 조회에 실패했습니다.'))}
-                  className={`block w-full rounded-2xl border p-4 text-left ${
-                    selectedId === item.request_id ? 'border-accent bg-blue-50' : 'border-slate-200 bg-white'
+                  onClick={() => loadDetail(item.request_id)}
+                  className={`block w-full rounded-2xl border p-4 text-left transition ${
+                    selectedId === item.request_id
+                      ? 'border-accent bg-blue-50 ring-2 ring-accent'
+                      : 'border-slate-200 bg-white hover:border-accent/40'
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
@@ -448,7 +462,22 @@ export default function AdminPage() {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          {!detail ? (
+          {isDetailLoading ? (
+            <div className="flex min-h-[520px] items-center justify-center text-center">
+              <p className="text-sm font-bold text-slate-400">불러오는 중...</p>
+            </div>
+          ) : detailError ? (
+            <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-center">
+              <p className="text-sm font-bold text-rose-500">{detailError}</p>
+              <button
+                type="button"
+                onClick={() => selectedId && loadDetail(selectedId)}
+                className="rounded-2xl bg-accent px-5 py-2.5 text-sm font-extrabold text-white"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : !detail ? (
             <div className="flex min-h-[520px] items-center justify-center text-center">
               <p className="text-sm font-bold text-slate-400">왼쪽에서 신청건을 선택해주세요.</p>
             </div>
