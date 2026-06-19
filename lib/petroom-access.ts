@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeContractor, type ContractorRecord } from '@/lib/petroom-data';
 import { readFromGoogleSheet } from '@/lib/sheets';
 
-export const getAdminToken = (request: NextRequest) =>
-  request.headers.get('x-admin-token') || request.nextUrl.searchParams.get('adminToken') || '';
+export const getAdminToken = (request: NextRequest) => {
+  const headerToken = request.headers.get('x-admin-token');
+  if (headerToken) {
+    // 클라이언트가 비-ASCII 토큰을 헤더로 보낼 때 encodeURIComponent로 인코딩하므로 디코딩한다.
+    try {
+      return decodeURIComponent(headerToken);
+    } catch {
+      return headerToken;
+    }
+  }
+  return request.nextUrl.searchParams.get('adminToken') || '';
+};
 
 export const isAdminAuthorized = (request: NextRequest) => {
   const configuredToken = process.env.ADMIN_ACCESS_TOKEN;

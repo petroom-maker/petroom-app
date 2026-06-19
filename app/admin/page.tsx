@@ -134,17 +134,20 @@ export default function AdminPage() {
   // 토큰은 URL이 아니라 x-admin-token 헤더로만 전송한다.
   const adminUrl = (path: string) => new URL(path, window.location.origin).toString();
 
-  const headers = useMemo(() => ({ 'x-admin-token': adminToken }), [adminToken]);
+  // 비-ASCII 토큰도 HTTP 헤더로 안전하게 보내기 위해 인코딩한다(서버에서 디코딩).
+  const encodeToken = (token: string) => encodeURIComponent(token);
+
+  const headers = useMemo(() => ({ 'x-admin-token': encodeToken(adminToken) }), [adminToken]);
 
   const loadRequests = async (token = adminToken) => {
-    const response = await fetch('/api/admin/requests', { cache: 'no-store', headers: { 'x-admin-token': token } });
+    const response = await fetch('/api/admin/requests', { cache: 'no-store', headers: { 'x-admin-token': encodeToken(token) } });
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.message ?? '목록 조회 실패');
     setRequests(result.requests ?? []);
   };
 
   const loadContractors = async (token = adminToken) => {
-    const response = await fetch('/api/admin/contractors', { cache: 'no-store', headers: { 'x-admin-token': token } });
+    const response = await fetch('/api/admin/contractors', { cache: 'no-store', headers: { 'x-admin-token': encodeToken(token) } });
     const result = await response.json();
     if (response.ok && result.ok) {
       setContractors(result.contractors ?? []);
