@@ -26,7 +26,7 @@ export const LoginScreen = ({ authError }: { authError: string }) => {
   return (
     <main className="flex min-h-screen items-center bg-white px-6 py-10">
       <div className="mx-auto w-full max-w-[400px]">
-        <img src="/petroom-logo-transparent.png" alt="PET ROOM" className="mb-6 h-16 w-16 object-contain" />
+        <img src="/petroom-logo-transparent.png" alt="새집다오" className="mb-6 h-16 w-16 object-contain" />
 
         <h1 className="mb-3 text-3xl font-extrabold leading-tight text-navy">
           반려가구

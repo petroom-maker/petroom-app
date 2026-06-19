@@ -126,7 +126,7 @@ export default function ContractorPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-6">
       <div className="mx-auto grid max-w-[1120px] gap-5 lg:grid-cols-[360px_1fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-extrabold text-accent">PET ROOM CONTRACTOR</p>
+          <p className="text-xs font-extrabold text-accent">새집다오 CONTRACTOR</p>
           <h1 className="mt-1 text-2xl font-extrabold text-navy">업체 요청함</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">
             배정받은 요청만 표시됩니다. 견적은 제출 후 바로 고객에게 노출되지 않고 펫룸 검수 후 전달됩니다.

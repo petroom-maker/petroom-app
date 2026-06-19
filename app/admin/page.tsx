@@ -410,7 +410,7 @@ export default function AdminPage() {
       <div className="mx-auto grid max-w-[1280px] gap-5 lg:grid-cols-[420px_1fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <header className="mb-4">
-            <p className="text-xs font-extrabold text-accent">PET ROOM ADMIN</p>
+            <p className="text-xs font-extrabold text-accent">새집다오 ADMIN</p>
             <h1 className="mt-1 text-2xl font-extrabold text-navy">신청 관리</h1>
             <p className="mt-1 text-sm text-slate-500">관리자 검수 후 승인한 견적만 고객에게 노출됩니다.</p>
           </header>

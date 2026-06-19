@@ -109,7 +109,7 @@ function ResultContent() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <img
               src="/petroom-logo-transparent.png"
-              alt="PET ROOM"
+              alt="새집다오"
               style={{
                 display: 'block',
                 width: '54px',
@@ -119,7 +119,7 @@ function ResultContent() {
             />
             <div>
               <p style={{ margin: '0 0 3px', color: '#64748b', fontSize: '12px', fontWeight: 800 }}>
-                PET ROOM
+                새집다오
               </p>
               <h1 style={{ margin: 0, color: mainColor, fontSize: '20px', lineHeight: 1.2 }}>
                 견적 결과

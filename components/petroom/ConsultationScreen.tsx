@@ -7,10 +7,10 @@ import type { AppScreen } from './types';
 const rooms = [
   {
     id: 'petroom',
-    title: 'PET ROOM 요청 확인방',
+    title: '새집다오 요청 확인방',
     status: '확인 중',
     preview: '요청 내용을 확인하고 있어요.',
-    description: 'PET ROOM이 요청 내용을 확인 중이에요. 필요한 경우 추가 사진이나 정보를 요청드릴 수 있어요.',
+    description: '새집다오가 요청 내용을 확인 중이에요. 필요한 경우 추가 사진이나 정보를 요청드릴 수 있어요.',
     messages: ['손상 부위 전체 사진을 한 장 더 보내주시면 시공 범위를 더 정확히 확인할 수 있어요.', '이사일 또는 희망 시공일이 정해졌다면 알려주세요.'],
     actions: ['사진 추가하기', '일정 제안하기'],
   },

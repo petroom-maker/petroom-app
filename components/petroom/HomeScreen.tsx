@@ -4,15 +4,15 @@ import { LineIcon, type LineIconName } from './icons';
 import type { AppScreen, RequestTarget } from './types';
 
 const stats: { label: string; value: string; sub: string; icon: LineIconName }[] = [
-  { label: '누적 요청 건수', value: '1,203건', sub: '이번 달 +132', icon: 'document' },
-  { label: '평균 견적 회신', value: '24시간', sub: '업계 평균 48시간', icon: 'clock' },
+  { label: '누적 요청 건수', value: '12건', sub: '신규 서비스 오픈', icon: 'document' },
+  { label: '평균 견적 회신', value: '48시간 이내', sub: '빠른 견적 회신', icon: 'clock' },
 ];
 
-const quickMenus: { label: string; icon: LineIconName; action: 'request' | 'progress' | 'chat' }[] = [
+const quickMenus: { label: string; icon: LineIconName; action: 'request' | 'progress' | 'reviews' }[] = [
   { label: '견적 요청', icon: 'edit', action: 'request' },
   { label: '진행 조회', icon: 'search', action: 'progress' },
-  { label: '업체 찾기', icon: 'building', action: 'chat' },
-  { label: '1:1 상담', icon: 'headset', action: 'chat' },
+  { label: '견적 확인', icon: 'document', action: 'progress' },
+  { label: '시공 사례', icon: 'star', action: 'reviews' },
 ];
 
 const reviewCards: { title: string; price: string; region: string; icon: LineIconName }[] = [
@@ -34,6 +34,11 @@ export const HomeScreen = ({
       return;
     }
 
+    if (action === 'reviews') {
+      document.getElementById('home-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     onChange(action);
   };
 
@@ -41,8 +46,8 @@ export const HomeScreen = ({
     <div className="-mx-5 -mt-4 min-h-[calc(100vh-80px)] bg-white px-5 pb-5 pt-5">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src="/petroom-logo-transparent.png" alt="" className="h-9 w-9 object-contain" />
-          <span className="text-[22px] font-black tracking-tight text-[#0F172A]">PET ROOM</span>
+          <img src="/PETROOM_app_icon_256.png" alt="새집다오" className="h-16 w-16 object-contain" />
+          <span className="text-[22px] font-black tracking-tight text-[#0F172A]">새집다오</span>
         </div>
         <div className="flex items-center gap-4 text-[#0F172A]">
           <button type="button" className="relative" aria-label="알림">
@@ -114,7 +119,7 @@ export const HomeScreen = ({
         </div>
       </section>
 
-      <section className="mt-7">
+      <section id="home-reviews" className="mt-7 scroll-mt-20">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[18px] font-black text-[#0F172A]">실제 견적 후기</h2>
           <button type="button" className="text-[13px] font-bold text-[#0066FF]">

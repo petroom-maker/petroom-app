@@ -129,7 +129,7 @@ const homeSteps: RequestStep[] = [
     title: '요청 완료',
     kind: 'complete',
     completeTitle: '원상복구 견적 요청이 접수되었습니다.',
-    completeMessage: 'PET ROOM이 시공 범위와 견적 기준을 정리한 뒤, 실제 시공 가능한 업체 연결까지 도와드릴게요.',
+    completeMessage: '새집다오가 시공 범위와 견적 기준을 정리한 뒤, 실제 시공 가능한 업체 연결까지 도와드릴게요.',
   },
 ];
 
@@ -222,7 +222,7 @@ const businessSteps: RequestStep[] = [
     title: '요청 완료',
     kind: 'complete',
     completeTitle: '운영 공간 원상복구 견적 요청이 접수되었습니다.',
-    completeMessage: 'PET ROOM이 시공 범위, 견적 기준, 영업에 맞는 시공 가능성을 정리한 뒤 업체 연결까지 도와드릴게요.',
+    completeMessage: '새집다오가 시공 범위, 견적 기준, 영업에 맞는 시공 가능성을 정리한 뒤 업체 연결까지 도와드릴게요.',
   },
 ];
 

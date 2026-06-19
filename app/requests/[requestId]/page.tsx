@@ -178,7 +178,7 @@ export default function CustomerRequestPage() {
             전달받은 링크를 다시 확인해주세요.
           </p>
           <Link href="/" className="mt-5 inline-flex h-12 items-center justify-center rounded-[14px] bg-[#0066FF] px-5 text-sm font-black text-white">
-            PET ROOM 홈으로
+            새집다오 홈으로
           </Link>
         </section>
       </main>
@@ -192,10 +192,10 @@ export default function CustomerRequestPage() {
       <div className="mx-auto max-w-[560px] space-y-4">
         <header className="flex items-center justify-between rounded-[20px] bg-white px-5 py-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <img src="/petroom-logo-transparent.png" alt="PET ROOM" className="h-9 w-9 object-contain" />
+            <img src="/petroom-logo-transparent.png" alt="새집다오" className="h-9 w-9 object-contain" />
             <div>
               <p className="text-[11px] font-black text-[#0066FF]">원상복구 견적 결과</p>
-              <p className="text-[16px] font-black text-[#0F172A]">PET ROOM</p>
+              <p className="text-[16px] font-black text-[#0F172A]">새집다오</p>
             </div>
           </div>
           <span className="rounded-full bg-[#EFF6FF] px-3 py-1.5 text-[11px] font-black text-[#0066FF]">

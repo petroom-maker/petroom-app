@@ -12,7 +12,7 @@ export const IntroScreen = ({ onStart }: { onStart: () => void }) => {
       <div className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[480px] flex-col justify-center">
         <header className="mb-10 text-center">
           <img src="/petroom-logo-transparent.png" alt="" className="mx-auto h-16 w-16 object-contain" />
-          <p className="mt-3 text-lg font-black tracking-[0.08em] text-navy">PET ROOM</p>
+          <p className="mt-3 text-lg font-black tracking-[0.08em] text-navy">새집다오</p>
         </header>
 
         <section className="text-center">

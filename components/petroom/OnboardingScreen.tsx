@@ -101,7 +101,7 @@ export const OnboardingScreen = ({
     <main className="min-h-screen bg-white px-6 py-10">
       <div className="mx-auto max-w-[400px]">
         <header className="mb-8">
-          <img src="/petroom-logo-transparent.png" alt="PET ROOM" className="mb-4 h-12 w-12 object-contain" />
+          <img src="/petroom-logo-transparent.png" alt="새집다오" className="mb-4 h-12 w-12 object-contain" />
           <p className="mb-2 text-xs font-extrabold text-slate-400">{provider} 로그인 완료</p>
           <h1 className="text-2xl font-extrabold leading-snug text-navy">
             안전한 이용을 위해

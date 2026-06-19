@@ -40,7 +40,7 @@ export const ProfileScreen = ({ onChangeScreen }: { onChangeScreen: (screen: App
             <LineIcon name="user" size={28} />
           </div>
           <div>
-            <p className="text-lg font-black text-[#1A1A1A]">PET ROOM 사용자</p>
+            <p className="text-lg font-black text-[#1A1A1A]">새집다오 사용자</p>
             <p className="mt-1 text-xs font-bold text-warm-caption">일반 가정 / 사업장 정보를 함께 관리할 수 있어요.</p>
           </div>
         </div>

@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PET ROOM",
+  title: "새집다오",
   description: "반려동물 펫룸 시공 견적 비교 플랫폼",
 };
 
