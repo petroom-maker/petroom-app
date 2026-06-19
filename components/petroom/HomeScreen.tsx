@@ -20,7 +20,7 @@ const serviceSteps = [
   {
     title: '업체 연결',
     description: '믿을 수 있는 업체를 연결해드려요.',
-    image: '/images/home/step-connect.png',
+    image: '/images/home/step-connect-service.png',
     imageAlt: '새집다오 업체 연결',
   },
 ];
