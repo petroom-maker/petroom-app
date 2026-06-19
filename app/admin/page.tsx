@@ -81,6 +81,27 @@ const getImageLabel = (image: Record<string, unknown>) =>
   String(image.image_type || image['이미지구분'] || image.description || '사진');
 
 const imageGroups = ['전체공간', '훼손범위', '근접사진', '추가사진'];
+
+const ADMIN_TOKEN_STORAGE_KEY = 'petroom_admin_token';
+
+const readStoredToken = () => {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.sessionStorage?.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
+
+const writeStoredToken = (value: string) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage?.setItem(ADMIN_TOKEN_STORAGE_KEY, value);
+  } catch {
+    // Some in-app browsers block sessionStorage. Keep the UI working.
+  }
+};
+
 const rawValue = (row: Record<string, unknown>, ...keys: string[]) => {
   for (const key of keys) {
     const value = row[key];
@@ -90,7 +111,11 @@ const rawValue = (row: Record<string, unknown>, ...keys: string[]) => {
 };
 
 export default function AdminPage() {
-  const [adminToken, setAdminToken] = useState('');
+  const [adminToken, setAdminToken] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const urlToken = new URLSearchParams(window.location.search).get('adminToken') ?? '';
+    return urlToken || readStoredToken();
+  });
   const [requests, setRequests] = useState<RequestRecord[]>([]);
   const [contractors, setContractors] = useState<ContractorRecord[]>([]);
   const [detail, setDetail] = useState<AdminDetail | null>(null);
@@ -102,28 +127,23 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [assignmentForm, setAssignmentForm] = useState({ contractorId: '', requestMemo: '' });
   const [estimateForm, setEstimateForm] = useState(emptyEstimate);
+  const [isSavingEstimate, setIsSavingEstimate] = useState(false);
+  const [togglingBidId, setTogglingBidId] = useState('');
 
-  const adminUrl = (path: string) => {
-    const url = new URL(path, window.location.origin);
-    if (adminToken) url.searchParams.set('adminToken', adminToken);
-    return url.toString();
-  };
+  // 토큰은 URL이 아니라 x-admin-token 헤더로만 전송한다.
+  const adminUrl = (path: string) => new URL(path, window.location.origin).toString();
 
   const headers = useMemo(() => ({ 'x-admin-token': adminToken }), [adminToken]);
 
   const loadRequests = async (token = adminToken) => {
-    const url = new URL('/api/admin/requests', window.location.origin);
-    if (token) url.searchParams.set('adminToken', token);
-    const response = await fetch(url.toString(), { cache: 'no-store', headers: { 'x-admin-token': token } });
+    const response = await fetch('/api/admin/requests', { cache: 'no-store', headers: { 'x-admin-token': token } });
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.message ?? '목록 조회 실패');
     setRequests(result.requests ?? []);
   };
 
   const loadContractors = async (token = adminToken) => {
-    const url = new URL('/api/admin/contractors', window.location.origin);
-    if (token) url.searchParams.set('adminToken', token);
-    const response = await fetch(url.toString(), { cache: 'no-store', headers: { 'x-admin-token': token } });
+    const response = await fetch('/api/admin/contractors', { cache: 'no-store', headers: { 'x-admin-token': token } });
     const result = await response.json();
     if (response.ok && result.ok) {
       setContractors(result.contractors ?? []);
@@ -144,9 +164,19 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('adminToken') ?? '';
-    setAdminToken(token);
-    Promise.all([loadRequests(token), loadContractors(token)])
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('adminToken') ?? '';
+    if (adminToken) writeStoredToken(adminToken);
+
+    // URL에 토큰이 노출되지 않도록 쿼리에서 제거한다.
+    if (urlToken) {
+      params.delete('adminToken');
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+      window.history.replaceState(null, '', nextUrl);
+    }
+
+    Promise.all([loadRequests(adminToken), loadContractors(adminToken)])
       .catch((error) => setMessage(error instanceof Error ? error.message : '관리자 데이터를 불러오지 못했습니다.'))
       .finally(() => setIsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,43 +261,61 @@ export default function AdminPage() {
   };
 
   const submitManualEstimate = async () => {
+    if (isSavingEstimate) return;
     if (!detail || !estimateForm.bidAmount.trim()) {
       setMessage('견적금액을 입력해주세요.');
       return;
     }
-    const response = await fetch(adminUrl('/api/admin/estimates'), {
-      method: 'POST',
-      headers: { ...headers, 'content-type': 'application/json' },
-      body: JSON.stringify({ ...estimateForm, requestId: detail.request.request_id }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      setMessage(result.message ?? '견적 저장에 실패했습니다.');
-      return;
+    setIsSavingEstimate(true);
+    setMessage('견적을 저장하는 중입니다...');
+    try {
+      const response = await fetch(adminUrl('/api/admin/estimates'), {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ ...estimateForm, requestId: detail.request.request_id }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        setMessage(result.message ?? '견적 저장에 실패했습니다.');
+        return;
+      }
+      setMessage('견적을 검수대기로 저장했습니다.');
+      await loadDetail(detail.request.request_id);
+    } catch {
+      setMessage('견적 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingEstimate(false);
     }
-    setMessage('견적을 검수대기로 저장했습니다.');
-    await loadDetail(detail.request.request_id);
   };
 
   const toggleVisible = async (bid: BidRecord, index: number) => {
+    if (togglingBidId) return;
+    setTogglingBidId(bid.bid_id);
     const nextVisible = bid.customer_visible ? 'N' : 'Y';
-    const response = await fetch(adminUrl(`/api/admin/estimates/${encodeURIComponent(bid.bid_id)}`), {
-      method: 'PATCH',
-      headers: { ...headers, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        customerVisible: nextVisible,
-        bidStatus: nextVisible === 'Y' ? '고객노출승인' : '검수대기',
-        customerDisplayName: bid.customer_display_name || `업체 ${String.fromCharCode(65 + index)}`,
-        requestId: detail?.request.request_id,
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      setMessage(result.message ?? '노출 상태 변경에 실패했습니다.');
-      return;
+    setMessage(nextVisible === 'Y' ? '고객 노출을 승인하는 중입니다...' : '고객 노출을 해제하는 중입니다...');
+    try {
+      const response = await fetch(adminUrl(`/api/admin/estimates/${encodeURIComponent(bid.bid_id)}`), {
+        method: 'PATCH',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          customerVisible: nextVisible,
+          bidStatus: nextVisible === 'Y' ? '고객노출승인' : '검수대기',
+          customerDisplayName: bid.customer_display_name || `업체 ${String.fromCharCode(65 + index)}`,
+          requestId: detail?.request.request_id,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        setMessage(result.message ?? '노출 상태 변경에 실패했습니다.');
+        return;
+      }
+      setMessage(nextVisible === 'Y' ? '고객 노출을 승인했습니다.' : '고객 노출을 해제했습니다.');
+      if (detail) await loadDetail(detail.request.request_id);
+    } catch {
+      setMessage('노출 상태 변경 중 오류가 발생했습니다.');
+    } finally {
+      setTogglingBidId('');
     }
-    setMessage(nextVisible === 'Y' ? '고객 노출을 승인했습니다.' : '고객 노출을 해제했습니다.');
-    if (detail) await loadDetail(detail.request.request_id);
   };
 
   const updateEstimateCustomerInfo = async (bid: BidRecord, changes: Record<string, unknown>) => {
@@ -308,7 +356,10 @@ export default function AdminPage() {
           <div className="grid gap-2">
             <input
               value={adminToken}
-              onChange={(event) => setAdminToken(event.target.value)}
+              onChange={(event) => {
+                setAdminToken(event.target.value);
+                writeStoredToken(event.target.value);
+              }}
               placeholder="관리자 토큰"
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-navy outline-none"
             />
@@ -589,36 +640,16 @@ export default function AdminPage() {
                       />
                       고객 추천 견적으로 표시
                     </label>
-                    <button type="button" onClick={submitManualEstimate} className="rounded-2xl bg-accent px-4 py-3 text-sm font-extrabold text-white">
-                      검수대기 견적 저장
+                    <button
+                      type="button"
+                      onClick={submitManualEstimate}
+                      disabled={isSavingEstimate}
+                      className="rounded-2xl bg-accent px-4 py-3 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {isSavingEstimate ? '저장 중...' : '검수대기 견적 저장'}
                     </button>
                   </div>
                 </div>
-              </section>
-
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-base font-extrabold text-navy">고객 선택 결과</h3>
-                  <span className="text-xs font-extrabold text-slate-400">{detail.customerActions.length}건</span>
-                </div>
-                {detail.customerActions.length === 0 ? (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-400">아직 고객 선택이 없습니다.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {detail.customerActions.map((action) => (
-                      <div key={action.action_id} className="rounded-2xl border border-slate-200 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-extrabold text-navy">{action.action_label || action.action_type}</p>
-                          <span className="text-xs font-bold text-slate-400">{formatDate(action.created_at)}</span>
-                        </div>
-                        <p className="mt-1 text-xs font-bold text-slate-500">
-                          {action.action_id}
-                          {action.selected_quote_id ? ` · 선택 견적 ${action.selected_quote_id}` : ''}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </section>
 
               <section>
@@ -636,11 +667,16 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => toggleVisible(bid, index)}
-                          className={`rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white ${
+                          disabled={togglingBidId === bid.bid_id}
+                          className={`rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60 ${
                             bid.customer_visible ? 'bg-slate-500' : 'bg-emerald-600'
                           }`}
                         >
-                          {bid.customer_visible ? '고객노출 해제' : '고객노출 승인'}
+                          {togglingBidId === bid.bid_id
+                            ? '처리 중...'
+                            : bid.customer_visible
+                              ? '고객노출 해제'
+                              : '고객노출 승인'}
                         </button>
                       </div>
                       <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
@@ -688,6 +724,31 @@ export default function AdminPage() {
                     </article>
                   ))}
                 </div>
+              </section>
+
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-base font-extrabold text-navy">고객 선택 결과</h3>
+                  <span className="text-xs font-extrabold text-slate-400">{detail.customerActions.length}건</span>
+                </div>
+                {detail.customerActions.length === 0 ? (
+                  <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-400">아직 고객 선택이 없습니다.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {detail.customerActions.map((action) => (
+                      <div key={action.action_id} className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-extrabold text-navy">{action.action_label || action.action_type}</p>
+                          <span className="text-xs font-bold text-slate-400">{formatDate(action.created_at)}</span>
+                        </div>
+                        <p className="mt-1 text-xs font-bold text-slate-500">
+                          {action.action_id}
+                          {action.selected_quote_id ? ` · 선택 견적 ${action.selected_quote_id}` : ''}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             </div>
           )}
